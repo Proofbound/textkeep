@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct MessagesExporterApp: App {
+struct TextKeepApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()

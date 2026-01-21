@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A11111110000000000000001 /* MessagesExporterApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000001 /* MessagesExporterApp.swift */; };
+		A11111110000000000000001 /* TextKeepApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000001 /* TextKeepApp.swift */; };
 		A11111110000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000002 /* ContentView.swift */; };
 		A11111110000000000000003 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000003 /* Models.swift */; };
 		A11111110000000000000004 /* MessagesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000004 /* MessagesViewModel.swift */; };
@@ -18,16 +18,16 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		A10000000000000000000001 /* MessagesExporterApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagesExporterApp.swift; sourceTree = "<group>"; };
+		A10000000000000000000001 /* TextKeepApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextKeepApp.swift; sourceTree = "<group>"; };
 		A10000000000000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A10000000000000000000003 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		A10000000000000000000004 /* MessagesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagesViewModel.swift; sourceTree = "<group>"; };
 		A10000000000000000000005 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		A10000000000000000000006 /* MessagesExporter.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MessagesExporter.entitlements; sourceTree = "<group>"; };
+		A10000000000000000000006 /* TextKeep.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TextKeep.entitlements; sourceTree = "<group>"; };
 		A10000000000000000000007 /* ContactsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactsService.swift; sourceTree = "<group>"; };
 		A10000000000000000000010 /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
 		A10000000000000000000011 /* Contacts.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Contacts.framework; path = System/Library/Frameworks/Contacts.framework; sourceTree = SDKROOT; };
-		A10000000000000000000100 /* MessagesExporter.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MessagesExporter.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A10000000000000000000100 /* TextKeep.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TextKeep.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -46,30 +46,30 @@
 		A13333330000000000000001 = {
 			isa = PBXGroup;
 			children = (
-				A13333330000000000000002 /* MessagesExporter */,
+				A13333330000000000000002 /* TextKeep */,
 				A13333330000000000000003 /* Products */,
 				A13333330000000000000004 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
-		A13333330000000000000002 /* MessagesExporter */ = {
+		A13333330000000000000002 /* TextKeep */ = {
 			isa = PBXGroup;
 			children = (
-				A10000000000000000000001 /* MessagesExporterApp.swift */,
+				A10000000000000000000001 /* TextKeepApp.swift */,
 				A10000000000000000000002 /* ContentView.swift */,
 				A10000000000000000000003 /* Models.swift */,
 				A10000000000000000000004 /* MessagesViewModel.swift */,
 				A10000000000000000000007 /* ContactsService.swift */,
 				A10000000000000000000005 /* Assets.xcassets */,
-				A10000000000000000000006 /* MessagesExporter.entitlements */,
+				A10000000000000000000006 /* TextKeep.entitlements */,
 			);
-			path = MessagesExporter;
+			path = TextKeep;
 			sourceTree = "<group>";
 		};
 		A13333330000000000000003 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				A10000000000000000000100 /* MessagesExporter.app */,
+				A10000000000000000000100 /* TextKeep.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -86,9 +86,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		A14444440000000000000001 /* MessagesExporter */ = {
+		A14444440000000000000001 /* TextKeep */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = A15555550000000000000003 /* Build configuration list for PBXNativeTarget "MessagesExporter" */;
+			buildConfigurationList = A15555550000000000000003 /* Build configuration list for PBXNativeTarget "TextKeep" */;
 			buildPhases = (
 				A12222220000000000000002 /* Sources */,
 				A12222220000000000000001 /* Frameworks */,
@@ -98,9 +98,9 @@
 			);
 			dependencies = (
 			);
-			name = MessagesExporter;
-			productName = MessagesExporter;
-			productReference = A10000000000000000000100 /* MessagesExporter.app */;
+			name = TextKeep;
+			productName = TextKeep;
+			productReference = A10000000000000000000100 /* TextKeep.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -118,7 +118,7 @@
 					};
 				};
 			};
-			buildConfigurationList = A15555550000000000000001 /* Build configuration list for PBXProject "MessagesExporter" */;
+			buildConfigurationList = A15555550000000000000001 /* Build configuration list for PBXProject "TextKeep" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -131,7 +131,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				A14444440000000000000001 /* MessagesExporter */,
+				A14444440000000000000001 /* TextKeep */,
 			);
 		};
 /* End PBXProject section */
@@ -152,7 +152,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A11111110000000000000001 /* MessagesExporterApp.swift in Sources */,
+				A11111110000000000000001 /* TextKeepApp.swift in Sources */,
 				A11111110000000000000002 /* ContentView.swift in Sources */,
 				A11111110000000000000003 /* Models.swift in Sources */,
 				A11111110000000000000004 /* MessagesViewModel.swift in Sources */,
@@ -286,11 +286,12 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = MessagesExporter/MessagesExporter.entitlements;
+				CODE_SIGN_ENTITLEMENTS = TextKeep/TextKeep.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = 4RZ2RJUXC8;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -315,11 +316,12 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = MessagesExporter/MessagesExporter.entitlements;
+				CODE_SIGN_ENTITLEMENTS = TextKeep/TextKeep.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = 4RZ2RJUXC8;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -342,7 +344,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		A15555550000000000000001 /* Build configuration list for PBXProject "MessagesExporter" */ = {
+		A15555550000000000000001 /* Build configuration list for PBXProject "TextKeep" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A17777770000000000000001 /* Debug */,
@@ -351,7 +353,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		A15555550000000000000003 /* Build configuration list for PBXNativeTarget "MessagesExporter" */ = {
+		A15555550000000000000003 /* Build configuration list for PBXNativeTarget "TextKeep" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A17777770000000000000003 /* Debug */,

@@ -1,6 +1,12 @@
 # TextKeep
 
+<p align="center">
+  <img src="marketing/textkeep-logo-with-text.svg" alt="TextKeep Logo" width="200"/>
+</p>
+
 A macOS app for exporting your iMessage conversations to Markdown files.
+
+**Part of the [Proofbound](https://proofbound.com) family of tools.**
 
 ## Features
 
@@ -20,7 +26,7 @@ A macOS app for exporting your iMessage conversations to Markdown files.
 ## Installation
 
 1. Clone the repository
-2. Open `MessagesExporter.xcodeproj` in Xcode
+2. Open `TextKeep.xcodeproj` in Xcode
 3. Build and run (Cmd+R)
 4. Grant Full Disk Access when prompted (System Settings > Privacy & Security > Full Disk Access)
 
@@ -78,6 +84,10 @@ Messages are exported as Markdown with the following structure:
 
 - **iCloud Messages** - Attachments stored only in iCloud may show as "not found". Scroll through old conversations in Messages.app to trigger downloads.
 - **Group Messages** - Currently focuses on individual conversations; group chat support is limited.
+
+## About Proofbound
+
+TextKeep is developed by [Proofbound](https://proofbound.com), creators of AI-powered book creation tools. We believe in building useful, privacy-respecting software.
 
 ## License
 
