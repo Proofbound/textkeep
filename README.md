@@ -25,6 +25,15 @@ A macOS app for exporting your iMessage conversations to Markdown files.
 
 ## Installation
 
+### Download Pre-built App (Recommended)
+
+1. Download the latest release from [GitHub Releases](https://github.com/Proofbound/textkeep/releases)
+2. Unzip `TextKeep-v1.1.1.zip`
+3. Move `TextKeep.app` to your Applications folder
+4. Launch and follow the permission prompts
+
+### Build from Source
+
 1. Clone the repository
 2. Open `TextKeep.xcodeproj` in Xcode
 3. Build and run (Cmd+R)
@@ -32,14 +41,14 @@ A macOS app for exporting your iMessage conversations to Markdown files.
 
 ## Usage
 
-1. Launch TextKeep
-2. Grant permissions when prompted:
-   - **Full Disk Access** - Required to read your Messages
-   - **Contacts** - Optional, but enables showing names instead of phone numbers
-3. Select a contact from the sidebar
-4. Review the message preview to confirm it's the conversation you want
-5. Set your desired date range
-6. Click "Export to Markdown" and choose a save location
+1. **Launch TextKeep** - You'll see a welcome screen on first launch
+2. **Grant permissions when prompted:**
+   - **Full Disk Access** - Click "Open System Settings" and enable TextKeep (required to read your Messages)
+   - **Contacts** - Click "Allow" when the system dialog appears (optional, but recommended for showing names instead of phone numbers)
+3. **Select a contact** from the sidebar
+4. **Review the message preview** to confirm it's the conversation you want
+5. **Set your desired date range**
+6. **Click "Export to Markdown"** and choose a save location
 
 ## Export Format
 
@@ -88,6 +97,25 @@ Messages are exported as Markdown with the following structure:
 ## About Proofbound
 
 TextKeep is developed by [Proofbound](https://proofbound.com), creators of AI-powered book creation tools. We believe in building useful, privacy-respecting software.
+
+## Changelog
+
+### v1.1.1 (2026-01-22)
+- Fixed Contacts permission dialog not appearing on first launch
+- Added required addressbook entitlement for proper macOS permission prompts
+
+### v1.1.0 (2026-01-22)
+- Welcome screen with onboarding instructions
+- Custom fonts (Crimson Text, Inter)
+- Privacy Policy and Terms of Service links
+- Updated bundle identifier to com.proofbound.textkeep
+
+### v1.0.0 (2026-01-21)
+- Initial release
+- Export iMessage conversations to Markdown
+- Contact integration with name display
+- Attachment support with automatic copying
+- Date range filtering
 
 ## License
 

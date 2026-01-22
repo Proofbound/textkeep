@@ -35,3 +35,7 @@ Carthage/Build/
 # Finder
 .Spotlight-V100
 .Trashes
+
+# Distribution builds
+*.app/
+*.zip

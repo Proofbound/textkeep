@@ -54,7 +54,10 @@ Models.swift               → Data structures (Contact, MessageHandle, Consolid
 - **Database:** Direct SQLite3 C API (read-only) to Messages chat.db
 - **Date Epoch:** Apple's CoreData epoch (Jan 1, 2001), stored as nanoseconds
 - **Blob Parsing:** attributedBody uses Apple's "typedstream" format for newer messages
-- **Entitlements:** App sandbox disabled (requires Full Disk Access)
+- **Entitlements:**
+  - App sandbox disabled (requires Full Disk Access)
+  - `com.apple.security.personal-information.addressbook` - Required for Contacts permission dialog
+  - `com.apple.security.files.user-selected.read-write` - For export file saving
 - **Fonts:** Crimson Text (headings), Inter (body) - bundled in Fonts/
 
 ## Required Permissions
@@ -65,3 +68,12 @@ Models.swift               → Data structures (Contact, MessageHandle, Consolid
 ## Version Management
 
 Version is set in `project.pbxproj` via `MARKETING_VERSION`. Update in both Debug and Release configurations.
+
+## Distribution
+
+For public releases:
+1. Update `MARKETING_VERSION` in project.pbxproj
+2. In Xcode: Product > Archive
+3. Distribute with Developer ID (handles signing and notarization automatically)
+4. Export notarized app and create zip file
+5. Upload to GitHub releases with version tag (e.g., v1.1.1)
