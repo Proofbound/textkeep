@@ -12,9 +12,10 @@ struct WelcomeView: View {
 
             // Logo + Title
             VStack(spacing: 16) {
-                Image(systemName: "message.fill")
-                    .font(.system(size: 60))
-                    .foregroundColor(.accentColor)
+                Image("AppLogo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 80, height: 80)
 
                 Text("Welcome to TextKeep")
                     .font(.custom("CrimsonText-SemiBold", size: 32))
@@ -86,7 +87,7 @@ struct InstructionRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
             Image(systemName: icon)
-                .font(.system(size: 24))
+                .font(.custom("Inter-Regular", size: 24))
                 .foregroundColor(.accentColor)
                 .frame(width: 32)
 

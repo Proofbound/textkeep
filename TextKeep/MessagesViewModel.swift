@@ -3,7 +3,7 @@ import SQLite3
 import SwiftUI
 
 class MessagesViewModel: ObservableObject {
-    @Published var consolidatedContacts: [ConsolidatedContact] = []
+    @Published var conversations: [any Conversation] = []
     @Published var selectedContactId: String?
     @Published var hasAccess = false
     @Published var isExporting = false
@@ -14,9 +14,9 @@ class MessagesViewModel: ObservableObject {
     var contactsService = ContactsService()
     private let dbPath: String
 
-    var selectedContact: ConsolidatedContact? {
+    var selectedConversation: (any Conversation)? {
         guard let id = selectedContactId else { return nil }
-        return consolidatedContacts.first { $0.id == id }
+        return conversations.first { $0.id == id }
     }
 
     init() {
@@ -37,38 +37,60 @@ class MessagesViewModel: ObservableObject {
                     contactsAuthorized = contactsService.authorizationStatus == .authorized
                     contactsService.loadContacts()
                 }
-                loadHandlesAndConsolidate()
+                loadAllConversations()
             }
         }
     }
 
-    private func loadHandlesAndConsolidate() {
+    private func loadAllConversations() {
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self = self else { return }
+
+            let individuals = self.loadIndividualConversations()
+            let groups = self.loadGroupConversations()
+
+            // Merge and sort with stable secondary key
+            var allConversations: [any Conversation] = individuals + groups
+            allConversations.sort { lhs, rhs in
+                let nameComparison = lhs.displayName.localizedCaseInsensitiveCompare(rhs.displayName)
+                if nameComparison == .orderedSame {
+                    return lhs.id < rhs.id  // Stable secondary sort
+                }
+                return nameComparison == .orderedAscending
+            }
+
+            DispatchQueue.main.async {
+                self.conversations = allConversations
+            }
+        }
+    }
+
+    private func loadIndividualConversations() -> [ConsolidatedContact] {
         var db: OpaquePointer?
 
         guard sqlite3_open_v2(dbPath, &db, SQLITE_OPEN_READONLY, nil) == SQLITE_OK else {
-            DispatchQueue.main.async {
-                self.errorMessage = "Failed to open database"
-            }
-            return
+            return []
         }
 
         defer { sqlite3_close(db) }
 
+        // Only get handles from 1-on-1 chats (single participant)
         let query = """
             SELECT DISTINCT h.ROWID, h.id
             FROM handle h
             JOIN chat_handle_join chj ON h.ROWID = chj.handle_id
             JOIN chat c ON chj.chat_id = c.ROWID
+            WHERE (
+                SELECT COUNT(*) FROM chat_handle_join
+                WHERE chat_id = c.ROWID
+            ) = 1
             ORDER BY h.id
         """
 
         var statement: OpaquePointer?
 
         guard sqlite3_prepare_v2(db, query, -1, &statement, nil) == SQLITE_OK else {
-            DispatchQueue.main.async {
-                self.errorMessage = "Failed to prepare query"
-            }
-            return
+            return []
         }
 
         defer { sqlite3_finalize(statement) }
@@ -81,11 +103,112 @@ class MessagesViewModel: ObservableObject {
             handles.append(MessageHandle(id: id, identifier: identifier))
         }
 
-        let consolidated = consolidateHandles(handles)
+        return consolidateHandles(handles)
+    }
 
-        DispatchQueue.main.async {
-            self.consolidatedContacts = consolidated
+    private func loadGroupConversations() -> [GroupChat] {
+        var db: OpaquePointer?
+
+        guard sqlite3_open_v2(dbPath, &db, SQLITE_OPEN_READONLY, nil) == SQLITE_OK else {
+            return []
         }
+
+        defer { sqlite3_close(db) }
+
+        // Get all group chats (multiple participants)
+        let query = """
+            SELECT c.ROWID, c.display_name, c.room_name
+            FROM chat c
+            JOIN chat_handle_join chj ON c.ROWID = chj.chat_id
+            GROUP BY c.ROWID
+            HAVING COUNT(chj.handle_id) > 1
+            ORDER BY c.ROWID DESC
+        """
+
+        var statement: OpaquePointer?
+        guard sqlite3_prepare_v2(db, query, -1, &statement, nil) == SQLITE_OK else {
+            return []
+        }
+
+        defer { sqlite3_finalize(statement) }
+
+        var groups: [GroupChat] = []
+
+        while sqlite3_step(statement) == SQLITE_ROW {
+            let chatId = Int(sqlite3_column_int(statement, 0))
+
+            var displayName = ""
+            if let namePtr = sqlite3_column_text(statement, 1) {
+                displayName = String(cString: namePtr)
+            }
+
+            if displayName.isEmpty, let roomNamePtr = sqlite3_column_text(statement, 2) {
+                displayName = String(cString: roomNamePtr)
+            }
+
+            let participants = loadParticipants(for: chatId, db: db)
+
+            if displayName.isEmpty {
+                // Generate name from participants
+                let names = participants.prefix(3)
+                    .map { $0.displayName.isEmpty ? $0.identifier : $0.displayName }
+                    .filter { !$0.isEmpty }
+
+                if !names.isEmpty {
+                    displayName = "Group with " + names.joined(separator: ", ")
+                    if participants.count > 3 {
+                        displayName += " and \(participants.count - 3) more"
+                    }
+                } else {
+                    // Fallback if all names are empty
+                    displayName = "Unnamed Group Chat"
+                }
+            }
+
+            groups.append(GroupChat(
+                id: "group_\(chatId)",
+                chatId: chatId,
+                displayName: displayName,
+                participants: participants
+            ))
+        }
+
+        return groups
+    }
+
+    private func loadParticipants(for chatId: Int, db: OpaquePointer?) -> [GroupParticipant] {
+        let query = """
+            SELECT h.ROWID, h.id
+            FROM handle h
+            JOIN chat_handle_join chj ON h.ROWID = chj.handle_id
+            WHERE chj.chat_id = ?
+            ORDER BY h.id
+        """
+
+        var statement: OpaquePointer?
+        guard sqlite3_prepare_v2(db, query, -1, &statement, nil) == SQLITE_OK else {
+            return []
+        }
+
+        defer { sqlite3_finalize(statement) }
+        sqlite3_bind_int(statement, 1, Int32(chatId))
+
+        var participants: [GroupParticipant] = []
+
+        while sqlite3_step(statement) == SQLITE_ROW {
+            let handleId = Int(sqlite3_column_int(statement, 0))
+            let identifier = String(cString: sqlite3_column_text(statement, 1))
+            let displayName = contactsService.getDisplayName(for: identifier)
+
+            participants.append(GroupParticipant(
+                id: handleId,
+                handleId: handleId,
+                identifier: identifier,
+                displayName: displayName
+            ))
+        }
+
+        return participants
     }
 
     private func consolidateHandles(_ handles: [MessageHandle]) -> [ConsolidatedContact] {
@@ -143,7 +266,15 @@ class MessagesViewModel: ObservableObject {
         return result
     }
 
-    func loadPreviewMessages(for contact: ConsolidatedContact, limit: Int = 5) {
+    func loadPreviewMessages(for conversation: any Conversation, limit: Int = 5) {
+        if conversation.isGroup {
+            loadPreviewMessagesForGroup(conversation as! GroupChat, limit: limit)
+        } else {
+            loadPreviewMessagesForContact(conversation as! ConsolidatedContact, limit: limit)
+        }
+    }
+
+    private func loadPreviewMessagesForContact(_ contact: ConsolidatedContact, limit: Int = 5) {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
 
@@ -227,7 +358,17 @@ class MessagesViewModel: ObservableObject {
                     attachments = self.getAttachments(for: id, db: db)
                 }
 
-                messages.append(Message(id: id, text: text, date: date, isFromMe: isFromMe, attachments: attachments))
+                // For 1-on-1 chats, sender is implicit (always 0)
+                messages.append(Message(
+                    id: id,
+                    text: text,
+                    date: date,
+                    isFromMe: isFromMe,
+                    attachments: attachments,
+                    senderHandleId: 0,
+                    senderIdentifier: nil,
+                    senderName: nil
+                ))
             }
 
             // Reverse to show oldest first (chronological order)
@@ -239,7 +380,141 @@ class MessagesViewModel: ObservableObject {
         }
     }
 
-    func exportMessages(for contact: ConsolidatedContact, from startDate: Date, to endDate: Date, to url: URL, completion: @escaping (Bool) -> Void) {
+    private func loadPreviewMessagesForGroup(_ group: GroupChat, limit: Int = 5) {
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self = self else { return }
+
+            var db: OpaquePointer?
+
+            guard sqlite3_open_v2(self.dbPath, &db, SQLITE_OPEN_READONLY, nil) == SQLITE_OK else {
+                return
+            }
+
+            defer { sqlite3_close(db) }
+
+            // Build sender cache for this group
+            var senderCache: [Int: (String, String)] = [:]  // handleId -> (identifier, displayName)
+            for participant in group.participants {
+                senderCache[participant.handleId] = (participant.identifier, participant.displayName)
+            }
+
+            let query = """
+                SELECT DISTINCT m.ROWID, m.text, m.date, m.is_from_me, m.cache_has_attachments,
+                       m.attributedBody, m.handle_id, h.id as sender_identifier
+                FROM message m
+                JOIN chat_message_join cmj ON m.ROWID = cmj.message_id
+                JOIN chat c ON cmj.chat_id = c.ROWID
+                LEFT JOIN handle h ON m.handle_id = h.ROWID
+                WHERE c.ROWID = ?
+                ORDER BY m.date DESC
+                LIMIT ?
+            """
+
+            var statement: OpaquePointer?
+
+            guard sqlite3_prepare_v2(db, query, -1, &statement, nil) == SQLITE_OK else {
+                return
+            }
+
+            defer { sqlite3_finalize(statement) }
+
+            sqlite3_bind_int(statement, 1, Int32(group.chatId))
+            sqlite3_bind_int(statement, 2, Int32(limit))
+
+            var messages: [Message] = []
+
+            while sqlite3_step(statement) == SQLITE_ROW {
+                let id = Int(sqlite3_column_int(statement, 0))
+
+                var text = ""
+                if let textPtr = sqlite3_column_text(statement, 1) {
+                    text = String(cString: textPtr)
+                }
+
+                if text.isEmpty {
+                    if let blobPointer = sqlite3_column_blob(statement, 5) {
+                        let blobSize = sqlite3_column_bytes(statement, 5)
+                        let data = Data(bytes: blobPointer, count: Int(blobSize))
+                        text = self.extractTextFromAttributedBody(data)
+                    }
+                }
+
+                // Sanitize text
+                text = text
+                    .replacingOccurrences(of: "\0", with: "")
+                    .replacingOccurrences(of: "\u{FFFC}", with: "")
+                    .replacingOccurrences(of: "\u{FFFD}", with: "")
+                    .replacingOccurrences(of: "\u{200B}", with: "")
+                    .replacingOccurrences(of: "\u{200C}", with: "")
+                    .replacingOccurrences(of: "\u{FEFF}", with: "")
+                    .filter { char in
+                        guard let ascii = char.asciiValue else { return true }
+                        return ascii >= 32 || char == "\n" || char == "\t"
+                    }
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+
+                let dateNano = sqlite3_column_double(statement, 2)
+                let date = Date(timeIntervalSinceReferenceDate: dateNano / 1_000_000_000)
+
+                let isFromMe = sqlite3_column_int(statement, 3) == 1
+                let hasAttachments = sqlite3_column_int(statement, 4) == 1
+
+                var attachments: [String] = []
+                if hasAttachments {
+                    attachments = self.getAttachments(for: id, db: db)
+                }
+
+                // Get sender information
+                let senderHandleId = Int(sqlite3_column_int(statement, 6))
+                var senderIdentifier: String? = nil
+                if let identifierPtr = sqlite3_column_text(statement, 7) {
+                    senderIdentifier = String(cString: identifierPtr)
+                }
+
+                // Resolve sender name from cache
+                var senderName: String? = nil
+                if !isFromMe {
+                    if let cached = senderCache[senderHandleId] {
+                        senderName = cached.1  // displayName
+                        if senderIdentifier == nil {
+                            senderIdentifier = cached.0  // identifier
+                        }
+                    } else if let identifier = senderIdentifier {
+                        // Fallback: use identifier as name
+                        senderName = identifier
+                    }
+                }
+
+                messages.append(Message(
+                    id: id,
+                    text: text,
+                    date: date,
+                    isFromMe: isFromMe,
+                    attachments: attachments,
+                    senderHandleId: senderHandleId,
+                    senderIdentifier: senderIdentifier,
+                    senderName: senderName
+                ))
+            }
+
+            // Reverse to show oldest first (chronological order)
+            messages.reverse()
+
+            DispatchQueue.main.async {
+                self.previewMessages = messages
+            }
+        }
+    }
+
+    func exportMessages(for conversation: any Conversation, from startDate: Date, to endDate: Date, to url: URL, completion: @escaping (Bool) -> Void) {
+        if conversation.isGroup {
+            exportMessagesForGroup(conversation as! GroupChat, from: startDate, to: endDate, to: url, completion: completion)
+        } else {
+            exportMessagesForContact(conversation as! ConsolidatedContact, from: startDate, to: endDate, to: url, completion: completion)
+        }
+    }
+
+    private func exportMessagesForContact(_ contact: ConsolidatedContact, from startDate: Date, to endDate: Date, to url: URL, completion: @escaping (Bool) -> Void) {
         isExporting = true
         errorMessage = nil
 
@@ -333,7 +608,17 @@ class MessagesViewModel: ObservableObject {
                     attachments = self.getAttachments(for: id, db: db)
                 }
 
-                messages.append(Message(id: id, text: text, date: date, isFromMe: isFromMe, attachments: attachments))
+                // For 1-on-1 chats, sender is implicit
+                messages.append(Message(
+                    id: id,
+                    text: text,
+                    date: date,
+                    isFromMe: isFromMe,
+                    attachments: attachments,
+                    senderHandleId: 0,
+                    senderIdentifier: nil,
+                    senderName: nil
+                ))
             }
 
             // Create attachments folder and copy images
@@ -341,7 +626,153 @@ class MessagesViewModel: ObservableObject {
             let copiedAttachments = self.copyAttachments(from: messages, to: attachmentsFolder)
 
             // Generate markdown with image references
-            let markdown = self.generateMarkdown(contact: contact, messages: messages, startDate: startDate, endDate: endDate, attachmentMapping: copiedAttachments)
+            let markdown = self.generateMarkdown(conversation: contact, messages: messages, startDate: startDate, endDate: endDate, attachmentMapping: copiedAttachments)
+
+            do {
+                try markdown.write(to: url, atomically: true, encoding: .utf8)
+                DispatchQueue.main.async {
+                    self.isExporting = false
+                    completion(true)
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    self.errorMessage = "Failed to write file: \(error.localizedDescription)"
+                    self.isExporting = false
+                    completion(false)
+                }
+            }
+        }
+    }
+
+    private func exportMessagesForGroup(_ group: GroupChat, from startDate: Date, to endDate: Date, to url: URL, completion: @escaping (Bool) -> Void) {
+        isExporting = true
+        errorMessage = nil
+
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self = self else { return }
+
+            var db: OpaquePointer?
+
+            guard sqlite3_open_v2(self.dbPath, &db, SQLITE_OPEN_READONLY, nil) == SQLITE_OK else {
+                DispatchQueue.main.async {
+                    self.errorMessage = "Failed to open database"
+                    self.isExporting = false
+                    completion(false)
+                }
+                return
+            }
+
+            defer { sqlite3_close(db) }
+
+            // Build sender cache for this group
+            var senderCache: [Int: (String, String)] = [:]  // handleId -> (identifier, displayName)
+            for participant in group.participants {
+                senderCache[participant.handleId] = (participant.identifier, participant.displayName)
+            }
+
+            // Convert dates to Apple's CoreData timestamp (seconds since 2001-01-01)
+            let appleEpoch = Date(timeIntervalSinceReferenceDate: 0)
+            let startTimestamp = startDate.timeIntervalSince(appleEpoch) * 1_000_000_000
+            let endTimestamp = endDate.timeIntervalSince(appleEpoch) * 1_000_000_000
+
+            let query = """
+                SELECT DISTINCT m.ROWID, m.text, m.date, m.is_from_me, m.cache_has_attachments,
+                       m.attributedBody, m.handle_id, h.id as sender_identifier
+                FROM message m
+                JOIN chat_message_join cmj ON m.ROWID = cmj.message_id
+                JOIN chat c ON cmj.chat_id = c.ROWID
+                LEFT JOIN handle h ON m.handle_id = h.ROWID
+                WHERE c.ROWID = ?
+                AND m.date >= ?
+                AND m.date <= ?
+                ORDER BY m.date ASC
+            """
+
+            var statement: OpaquePointer?
+
+            guard sqlite3_prepare_v2(db, query, -1, &statement, nil) == SQLITE_OK else {
+                DispatchQueue.main.async {
+                    self.errorMessage = "Failed to prepare query"
+                    self.isExporting = false
+                    completion(false)
+                }
+                return
+            }
+
+            defer { sqlite3_finalize(statement) }
+
+            sqlite3_bind_int(statement, 1, Int32(group.chatId))
+            sqlite3_bind_double(statement, 2, startTimestamp)
+            sqlite3_bind_double(statement, 3, endTimestamp)
+
+            var messages: [Message] = []
+
+            while sqlite3_step(statement) == SQLITE_ROW {
+                let id = Int(sqlite3_column_int(statement, 0))
+
+                var text = ""
+                if let textPtr = sqlite3_column_text(statement, 1) {
+                    text = String(cString: textPtr)
+                }
+
+                if text.isEmpty {
+                    if let blobPointer = sqlite3_column_blob(statement, 5) {
+                        let blobSize = sqlite3_column_bytes(statement, 5)
+                        let data = Data(bytes: blobPointer, count: Int(blobSize))
+                        text = self.extractTextFromAttributedBody(data)
+                    }
+                }
+
+                let dateNano = sqlite3_column_double(statement, 2)
+                let date = Date(timeIntervalSinceReferenceDate: dateNano / 1_000_000_000)
+
+                let isFromMe = sqlite3_column_int(statement, 3) == 1
+                let hasAttachments = sqlite3_column_int(statement, 4) == 1
+
+                var attachments: [String] = []
+                if hasAttachments {
+                    attachments = self.getAttachments(for: id, db: db)
+                }
+
+                // Get sender information
+                let senderHandleId = Int(sqlite3_column_int(statement, 6))
+                var senderIdentifier: String? = nil
+                if let identifierPtr = sqlite3_column_text(statement, 7) {
+                    senderIdentifier = String(cString: identifierPtr)
+                }
+
+                // Resolve sender name from cache
+                var senderName: String? = nil
+                if !isFromMe {
+                    if let cached = senderCache[senderHandleId] {
+                        senderName = cached.1  // displayName
+                        if senderIdentifier == nil {
+                            senderIdentifier = cached.0  // identifier
+                        }
+                    } else if let identifier = senderIdentifier {
+                        // Fallback: use identifier as name
+                        senderName = identifier
+                    }
+                }
+
+                messages.append(Message(
+                    id: id,
+                    text: text,
+                    date: date,
+                    isFromMe: isFromMe,
+                    attachments: attachments,
+                    senderHandleId: senderHandleId,
+                    senderIdentifier: senderIdentifier,
+                    senderName: senderName
+                ))
+            }
+
+            // Create attachments folder and copy images
+            let attachmentsFolder = url.deletingLastPathComponent().appendingPathComponent("attachments")
+            let copiedAttachments = self.copyAttachments(from: messages, to: attachmentsFolder)
+
+            // Generate markdown with image references
+            let markdown = self.generateMarkdown(conversation: group, messages: messages, startDate: startDate, endDate: endDate, attachmentMapping: copiedAttachments)
 
             do {
                 try markdown.write(to: url, atomically: true, encoding: .utf8)
@@ -583,7 +1014,15 @@ class MessagesViewModel: ObservableObject {
         return attachments
     }
 
-    private func generateMarkdown(contact: ConsolidatedContact, messages: [Message], startDate: Date, endDate: Date, attachmentMapping: [String: String]) -> String {
+    private func generateMarkdown(conversation: any Conversation, messages: [Message], startDate: Date, endDate: Date, attachmentMapping: [String: String]) -> String {
+        if conversation.isGroup {
+            return generateGroupMarkdown(conversation as! GroupChat, messages: messages, startDate: startDate, endDate: endDate, attachmentMapping: attachmentMapping)
+        } else {
+            return generateIndividualMarkdown(conversation as! ConsolidatedContact, messages: messages, startDate: startDate, endDate: endDate, attachmentMapping: attachmentMapping)
+        }
+    }
+
+    private func generateIndividualMarkdown(_ contact: ConsolidatedContact, messages: [Message], startDate: Date, endDate: Date, attachmentMapping: [String: String]) -> String {
         let dateFormatter = DateFormatter()
         dateFormatter.dateStyle = .long
         dateFormatter.timeStyle = .none
@@ -670,6 +1109,103 @@ class MessagesViewModel: ObservableObject {
                         }
                     } else {
                         // Attachment couldn't be copied
+                        markdown += "> *[Attachment not found: \(filename)]*\n"
+                    }
+                }
+            }
+
+            markdown += "\n"
+        }
+
+        if messages.isEmpty {
+            markdown += "\n*No messages found in the specified date range.*\n"
+        }
+
+        return markdown
+    }
+
+    private func generateGroupMarkdown(_ group: GroupChat, messages: [Message], startDate: Date, endDate: Date, attachmentMapping: [String: String]) -> String {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateStyle = .long
+        dateFormatter.timeStyle = .none
+
+        let timeFormatter = DateFormatter()
+        timeFormatter.dateStyle = .none
+        timeFormatter.timeStyle = .short
+
+        let fullFormatter = DateFormatter()
+        fullFormatter.dateStyle = .medium
+        fullFormatter.timeStyle = .short
+
+        // Build participants list with identifiers
+        let participantsText = group.participants
+            .map { "\($0.displayName) (\($0.identifier))" }
+            .joined(separator: ", ")
+
+        var markdown = """
+        # Group Chat: \(group.displayName)
+
+        **Participants:** \(participantsText)
+        **Date Range:** \(dateFormatter.string(from: startDate)) - \(dateFormatter.string(from: endDate))
+        **Total Messages:** \(messages.count)
+        **Exported:** \(fullFormatter.string(from: Date()))
+
+        ---
+
+        """
+
+        var currentDay = ""
+
+        for message in messages {
+            let dayString = dateFormatter.string(from: message.date)
+
+            if dayString != currentDay {
+                currentDay = dayString
+                markdown += "\n## \(dayString)\n\n"
+            }
+
+            let time = timeFormatter.string(from: message.date)
+            // For group messages, always show the sender name
+            let sender = message.isFromMe ? "**Me**" : "**\(message.senderName ?? "Unknown")**"
+
+            markdown += "\(time) - \(sender)\n"
+
+            // Sanitize text
+            let sanitizedText = message.text
+                .replacingOccurrences(of: "\0", with: "")
+                .replacingOccurrences(of: "\u{FFFC}", with: "")
+                .replacingOccurrences(of: "\u{FFFD}", with: "")
+                .replacingOccurrences(of: "\u{200B}", with: "")
+                .replacingOccurrences(of: "\u{200C}", with: "")
+                .replacingOccurrences(of: "\u{FEFF}", with: "")
+                .filter { char in
+                    guard let ascii = char.asciiValue else { return true }
+                    return ascii >= 32 || char == "\n" || char == "\t"
+                }
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+
+            if !sanitizedText.isEmpty {
+                let indentedText = sanitizedText.components(separatedBy: "\n").map { "> \($0)" }.joined(separator: "\n")
+                markdown += "\(indentedText)\n"
+            }
+
+            if !message.attachments.isEmpty {
+                for attachment in message.attachments {
+                    let filename = (attachment as NSString).lastPathComponent
+
+                    if let relativePath = attachmentMapping[attachment] {
+                        let encodedPath = relativePath.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? relativePath
+
+                        if isImageFile(attachment) {
+                            markdown += "\n![Image: \(filename)](\(encodedPath))\n"
+                        } else if isVideoFile(attachment) {
+                            markdown += "> [Video: \(filename)](\(encodedPath))\n"
+                        } else if isAudioFile(attachment) {
+                            markdown += "> [Audio: \(filename)](\(encodedPath))\n"
+                        } else {
+                            markdown += "> [Attachment: \(filename)](\(encodedPath))\n"
+                        }
+                    } else {
                         markdown += "> *[Attachment not found: \(filename)]*\n"
                     }
                 }

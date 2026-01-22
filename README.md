@@ -11,11 +11,13 @@ A macOS app for exporting your iMessage conversations to Markdown files.
 ## Features
 
 - **Export to Markdown** - Save your message history as clean, readable Markdown files
+- **Group Chat Support** - Export both individual conversations and group messages with full participant attribution
 - **Contact Integration** - Displays contact names from your Contacts app instead of raw phone numbers
 - **Smart Consolidation** - Groups multiple phone numbers for the same contact (e.g., "+1 (555) 123-4567" and "5551234567" are recognized as the same person)
 - **Message Preview** - See recent messages before exporting to verify you have the right conversation
 - **Attachment Support** - Copies images, videos, and audio files to an `attachments/` folder with proper Markdown links
 - **Date Range Filtering** - Export only messages within a specific date range
+- **Built-in Help** - Comprehensive documentation accessible from within the app
 
 ## Requirements
 
@@ -28,7 +30,7 @@ A macOS app for exporting your iMessage conversations to Markdown files.
 ### Download Pre-built App (Recommended)
 
 1. Download the latest release from [GitHub Releases](https://github.com/Proofbound/textkeep/releases)
-2. Unzip `TextKeep-v1.1.1.zip`
+2. Unzip `TextKeep-v1.2.0.zip`
 3. Move `TextKeep.app` to your Applications folder
 4. Launch and follow the permission prompts
 
@@ -52,7 +54,7 @@ A macOS app for exporting your iMessage conversations to Markdown files.
 
 ## Export Format
 
-Messages are exported as Markdown with the following structure:
+### Individual Conversations
 
 ```markdown
 # Messages with John Doe
@@ -75,6 +77,30 @@ Messages are exported as Markdown with the following structure:
 ![Image: photo.jpg](attachments/1_photo.jpg)
 ```
 
+### Group Chats
+
+```markdown
+# Group Chat: Weekend Plans
+
+**Participants:** John Doe (+1 555-123-4567), Jane Smith (jane@example.com), Bob Wilson (+1 555-987-6543)
+**Date Range:** January 1, 2025 - January 22, 2026
+**Total Messages:** 234
+**Exported:** Jan 22, 2026 at 3:45 PM
+
+---
+
+## January 15, 2025
+
+10:30 AM - **John Doe**
+> Hey everyone, meeting at 3pm?
+
+10:32 AM - **Me**
+> Sounds good!
+
+10:33 AM - **Jane Smith**
+> I'll be there
+```
+
 ## Privacy & Security
 
 - **Read-only** - TextKeep only reads from your Messages database; it never modifies it
@@ -92,13 +118,19 @@ Messages are exported as Markdown with the following structure:
 ## Known Limitations
 
 - **iCloud Messages** - Attachments stored only in iCloud may show as "not found". Scroll through old conversations in Messages.app to trigger downloads.
-- **Group Messages** - Currently focuses on individual conversations; group chat support is limited.
 
 ## About Proofbound
 
 TextKeep is developed by [Proofbound](https://proofbound.com), creators of AI-powered book creation tools. We believe in building useful, privacy-respecting software.
 
 ## Changelog
+
+### v1.2.0 (2026-01-22)
+- **Group Message Support** - Full support for exporting group chats with proper sender attribution
+- **Enhanced UI** - Added Proofbound logo, improved header with tagline, consistent custom fonts throughout
+- **Built-in Help** - Comprehensive help page with documentation, troubleshooting, and about section
+- **Protocol-Oriented Architecture** - Unified handling of individual and group conversations
+- Performance optimizations with sender name caching for group exports
 
 ### v1.1.1 (2026-01-22)
 - Fixed Contacts permission dialog not appearing on first launch

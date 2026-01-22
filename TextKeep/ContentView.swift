@@ -7,26 +7,54 @@ struct ContentView: View {
     @State private var endDate = Date()
     @State private var showExportSuccess = false
     @State private var exportedPath = ""
+    @State private var showHelp = false
 
     private let privacyURL = URL(string: "https://app.proofbound.com/privacy")!
     private let termsURL = URL(string: "https://app.proofbound.com/terms")!
 
-    var filteredContacts: [ConsolidatedContact] {
+    var filteredConversations: [any Conversation] {
         if searchText.isEmpty {
-            return viewModel.consolidatedContacts
+            return viewModel.conversations
         }
-        return viewModel.consolidatedContacts.filter { contact in
-            contact.displayName.localizedCaseInsensitiveContains(searchText) ||
-            contact.identifiers.contains { $0.localizedCaseInsensitiveContains(searchText) }
+        return viewModel.conversations.filter { conversation in
+            conversation.displayName.localizedCaseInsensitiveContains(searchText) ||
+            conversation.participantNames.contains { $0.localizedCaseInsensitiveContains(searchText) }
         }
     }
 
     var body: some View {
         VStack(spacing: 0) {
             // Header
-            VStack(spacing: 8) {
-                Text("TextKeep")
-                    .font(.custom("CrimsonText-SemiBold", size: 28))
+            VStack(spacing: 12) {
+                HStack {
+                    Spacer()
+                    VStack(spacing: 6) {
+                        HStack(spacing: 12) {
+                            Image("AppLogo")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 32, height: 32)
+
+                            Text("TextKeep")
+                                .font(.custom("CrimsonText-SemiBold", size: 28))
+                        }
+
+                        Text("Export your Messages to Markdown")
+                            .font(.custom("Inter-Regular", size: 13))
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                }
+                .overlay(alignment: .trailing) {
+                    Button(action: { showHelp = true }) {
+                        Image(systemName: "questionmark.circle")
+                            .font(.custom("Inter-Regular", size: 18))
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Show help and documentation")
+                    .padding(.trailing, 8)
+                }
 
                 if !viewModel.hasAccess {
                     accessWarningView
@@ -50,9 +78,11 @@ struct ContentView: View {
                             .font(.custom("Inter-Regular", size: 13))
                             .padding(8)
 
-                        List(filteredContacts, selection: $viewModel.selectedContactId) { contact in
-                            ContactRow(contact: contact)
-                                .tag(contact.id)
+                        List(selection: $viewModel.selectedContactId) {
+                            ForEach(filteredConversations, id: \.id) { conversation in
+                                ConversationRow(conversation: conversation)
+                                    .tag(conversation.id)
+                            }
                         }
                         .listStyle(.inset)
                     }
@@ -60,10 +90,10 @@ struct ContentView: View {
 
                     // Right: Export options
                     VStack(spacing: 16) {
-                        if let contact = viewModel.selectedContact {
-                            selectedContactView(contact)
+                        if let conversation = viewModel.selectedConversation {
+                            selectedConversationView(conversation)
                         } else {
-                            Text("Select a contact to export messages")
+                            Text("Select a contact or group to export messages")
                                 .font(.custom("Inter-Regular", size: 14))
                                 .foregroundColor(.secondary)
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -97,13 +127,16 @@ struct ContentView: View {
         } message: {
             Text("Messages exported to:\n\(exportedPath)")
         }
+        .sheet(isPresented: $showHelp) {
+            HelpView()
+        }
         .onAppear {
             viewModel.checkAccessAndLoadContacts()
         }
         .onChange(of: viewModel.selectedContactId) { newValue in
-            if let contactId = newValue,
-               let contact = viewModel.consolidatedContacts.first(where: { $0.id == contactId }) {
-                viewModel.loadPreviewMessages(for: contact)
+            if let conversationId = newValue,
+               let conversation = viewModel.conversations.first(where: { $0.id == conversationId }) {
+                viewModel.loadPreviewMessages(for: conversation)
             } else {
                 viewModel.previewMessages = []
             }
@@ -113,7 +146,7 @@ struct ContentView: View {
     var accessWarningView: some View {
         VStack(spacing: 12) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.largeTitle)
+                .font(.custom("Inter-Regular", size: 40))
                 .foregroundColor(.orange)
 
             Text("Full Disk Access Required")
@@ -163,12 +196,21 @@ struct ContentView: View {
         .cornerRadius(8)
     }
 
-    func selectedContactView(_ contact: ConsolidatedContact) -> some View {
+    @ViewBuilder
+    func selectedConversationView(_ conversation: any Conversation) -> some View {
+        if conversation.isGroup {
+            groupDetailView(conversation as! GroupChat)
+        } else {
+            individualDetailView(conversation as! ConsolidatedContact)
+        }
+    }
+
+    func individualDetailView(_ contact: ConsolidatedContact) -> some View {
         VStack(spacing: 20) {
             // Contact info
             VStack(spacing: 8) {
                 Image(systemName: "person.circle.fill")
-                    .font(.system(size: 60))
+                    .font(.custom("Inter-Regular", size: 60))
                     .foregroundColor(.accentColor)
 
                 Text(contact.displayName)
@@ -267,16 +309,118 @@ struct ContentView: View {
         }
     }
 
+    func groupDetailView(_ group: GroupChat) -> some View {
+        VStack(spacing: 20) {
+            // Group info
+            VStack(spacing: 8) {
+                Image(systemName: "person.3.fill")
+                    .font(.custom("Inter-Regular", size: 60))
+                    .foregroundColor(.purple)
+
+                Text(group.displayName)
+                    .font(.custom("CrimsonText-SemiBold", size: 22))
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Participants (\(group.participantCount))")
+                        .font(.custom("Inter-SemiBold", size: 13))
+
+                    ForEach(group.participants.prefix(10)) { participant in
+                        Text("• \(participant.displayName)")
+                            .font(.custom("Inter-Regular", size: 11))
+                            .foregroundColor(.secondary)
+                    }
+
+                    if group.participantCount > 10 {
+                        Text("• ...and \(group.participantCount - 10) more")
+                            .font(.custom("Inter-Regular", size: 11))
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .padding()
+                .background(Color.gray.opacity(0.1))
+                .cornerRadius(8)
+            }
+            .padding(.top, 20)
+
+            Divider()
+
+            // Recent messages preview
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Recent Messages")
+                    .font(.custom("Inter-SemiBold", size: 15))
+
+                if viewModel.previewMessages.isEmpty {
+                    Text("Loading...")
+                        .font(.custom("Inter-Regular", size: 12))
+                        .foregroundColor(.secondary)
+                } else {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 8) {
+                            ForEach(viewModel.previewMessages) { message in
+                                MessagePreviewRow(message: message, contactName: nil)
+                            }
+                        }
+                    }
+                    .frame(maxHeight: 200)
+                }
+            }
+            .padding(.horizontal)
+
+            Divider()
+
+            // Date range
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Date Range")
+                    .font(.custom("Inter-SemiBold", size: 15))
+
+                HStack {
+                    DatePicker("From:", selection: $startDate, displayedComponents: .date)
+                        .font(.custom("Inter-Regular", size: 13))
+                    DatePicker("To:", selection: $endDate, displayedComponents: .date)
+                        .font(.custom("Inter-Regular", size: 13))
+                }
+            }
+            .padding(.horizontal)
+
+            Divider()
+
+            // Export button
+            VStack(spacing: 12) {
+                Button(action: exportMessages) {
+                    Label("Export to Markdown", systemImage: "square.and.arrow.up")
+                        .font(.custom("Inter-Medium", size: 14))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+
+                if viewModel.isExporting {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                }
+
+                if let error = viewModel.errorMessage {
+                    Text(error)
+                        .font(.custom("Inter-Regular", size: 12))
+                        .foregroundColor(.red)
+                }
+            }
+            .padding()
+
+            Spacer()
+        }
+    }
+
     func exportMessages() {
-        guard let contact = viewModel.selectedContact else { return }
+        guard let conversation = viewModel.selectedConversation else { return }
 
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.text]
-        panel.nameFieldStringValue = "\(contact.displayName) - Messages.md"
+        panel.nameFieldStringValue = "\(conversation.displayName) - Messages.md"
 
         panel.begin { response in
             if response == .OK, let url = panel.url {
-                viewModel.exportMessages(for: contact, from: startDate, to: endDate, to: url) { success in
+                viewModel.exportMessages(for: conversation, from: startDate, to: endDate, to: url) { success in
                     if success {
                         exportedPath = url.path
                         showExportSuccess = true
@@ -287,19 +431,32 @@ struct ContentView: View {
     }
 }
 
-struct ContactRow: View {
-    let contact: ConsolidatedContact
+struct ConversationRow: View {
+    let conversation: any Conversation
 
     var body: some View {
         HStack {
-            Image(systemName: contact.contactIdentifier != nil ? "person.circle.fill" : "phone.circle.fill")
-                .font(.title2)
-                .foregroundColor(contact.contactIdentifier != nil ? .accentColor : .secondary)
+            if conversation.isGroup {
+                Image(systemName: "person.3.fill")
+                    .font(.custom("Inter-Regular", size: 17))
+                    .foregroundColor(.purple)
+            } else {
+                let contact = conversation as! ConsolidatedContact
+                Image(systemName: contact.contactIdentifier != nil ? "person.circle.fill" : "phone.circle.fill")
+                    .font(.custom("Inter-Regular", size: 17))
+                    .foregroundColor(contact.contactIdentifier != nil ? .accentColor : .secondary)
+            }
 
             VStack(alignment: .leading) {
-                Text(contact.displayName)
+                Text(conversation.displayName)
                     .font(.custom("Inter-Medium", size: 13))
-                HStack(spacing: 4) {
+
+                if conversation.isGroup {
+                    Text("\(conversation.participantCount) participants")
+                        .font(.custom("Inter-Regular", size: 11))
+                        .foregroundColor(.secondary)
+                } else {
+                    let contact = conversation as! ConsolidatedContact
                     if contact.handles.count > 1 {
                         Text("\(contact.handles.count) numbers")
                             .font(.custom("Inter-Regular", size: 11))
@@ -318,7 +475,7 @@ struct ContactRow: View {
 
 struct MessagePreviewRow: View {
     let message: Message
-    let contactName: String
+    let contactName: String?  // Optional for group messages
 
     private var timeFormatter: DateFormatter {
         let formatter = DateFormatter()
@@ -327,16 +484,28 @@ struct MessagePreviewRow: View {
         return formatter
     }
 
+    private var senderName: String {
+        if message.isFromMe {
+            return "Me"
+        } else if let contactName = contactName {
+            // 1-on-1 conversation
+            return contactName
+        } else {
+            // Group conversation - use sender name from message
+            return message.senderName ?? "Unknown"
+        }
+    }
+
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
             // Sender indicator
             Image(systemName: message.isFromMe ? "arrow.up.circle.fill" : "arrow.down.circle.fill")
                 .foregroundColor(message.isFromMe ? .blue : .green)
-                .font(.caption)
+                .font(.custom("Inter-Regular", size: 11))
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack {
-                    Text(message.isFromMe ? "Me" : contactName)
+                    Text(senderName)
                         .font(.custom("Inter-Medium", size: 11))
                     Spacer()
                     Text(timeFormatter.string(from: message.date))
