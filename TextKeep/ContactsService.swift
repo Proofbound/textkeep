@@ -10,21 +10,26 @@ class ContactsService: ObservableObject {
 
     init() {
         authorizationStatus = CNContactStore.authorizationStatus(for: .contacts)
+        print("ContactsService init - authorizationStatus: \(authorizationStatus.rawValue)")
     }
 
     func requestAccess() async -> Bool {
         do {
             let granted = try await contactStore.requestAccess(for: .contacts)
+            let newStatus = CNContactStore.authorizationStatus(for: .contacts)
+            print("ContactsService requestAccess - granted: \(granted), newStatus: \(newStatus.rawValue)")
             await MainActor.run {
-                authorizationStatus = CNContactStore.authorizationStatus(for: .contacts)
+                authorizationStatus = newStatus
             }
             if granted {
                 loadContacts()
             }
             return granted
         } catch {
+            let newStatus = CNContactStore.authorizationStatus(for: .contacts)
+            print("ContactsService requestAccess error - newStatus: \(newStatus.rawValue), error: \(error)")
             await MainActor.run {
-                authorizationStatus = CNContactStore.authorizationStatus(for: .contacts)
+                authorizationStatus = newStatus
             }
             return false
         }

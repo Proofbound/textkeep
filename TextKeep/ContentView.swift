@@ -8,6 +8,9 @@ struct ContentView: View {
     @State private var showExportSuccess = false
     @State private var exportedPath = ""
 
+    private let privacyURL = URL(string: "https://app.proofbound.com/privacy")!
+    private let termsURL = URL(string: "https://app.proofbound.com/terms")!
+
     var filteredContacts: [ConsolidatedContact] {
         if searchText.isEmpty {
             return viewModel.consolidatedContacts
@@ -23,12 +26,11 @@ struct ContentView: View {
             // Header
             VStack(spacing: 8) {
                 Text("TextKeep")
-                    .font(.title)
-                    .fontWeight(.semibold)
+                    .font(.custom("CrimsonText-SemiBold", size: 28))
 
                 if !viewModel.hasAccess {
                     accessWarningView
-                } else if viewModel.contactsService.authorizationStatus != .authorized {
+                } else if !viewModel.contactsAuthorized {
                     contactsInfoView
                 }
             }
@@ -45,6 +47,7 @@ struct ContentView: View {
                     VStack(alignment: .leading, spacing: 0) {
                         TextField("Search contacts...", text: $searchText)
                             .textFieldStyle(.roundedBorder)
+                            .font(.custom("Inter-Regular", size: 13))
                             .padding(8)
 
                         List(filteredContacts, selection: $viewModel.selectedContactId) { contact in
@@ -61,12 +64,26 @@ struct ContentView: View {
                             selectedContactView(contact)
                         } else {
                             Text("Select a contact to export messages")
+                                .font(.custom("Inter-Regular", size: 14))
                                 .foregroundColor(.secondary)
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                         }
                     }
                     .frame(minWidth: 300)
                 }
+
+                // Footer with legal links
+                Divider()
+                HStack {
+                    Spacer()
+                    Link("Privacy", destination: privacyURL)
+                    Text("•").foregroundColor(.secondary)
+                    Link("Terms", destination: termsURL)
+                    Spacer()
+                }
+                .font(.custom("Inter-Regular", size: 11))
+                .foregroundColor(.secondary)
+                .padding(.vertical, 8)
             } else {
                 Spacer()
             }
@@ -100,10 +117,10 @@ struct ContentView: View {
                 .foregroundColor(.orange)
 
             Text("Full Disk Access Required")
-                .font(.headline)
+                .font(.custom("Inter-SemiBold", size: 16))
 
             Text("This app needs permission to read your Messages database.")
-                .font(.subheadline)
+                .font(.custom("Inter-Regular", size: 13))
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
 
@@ -130,7 +147,7 @@ struct ContentView: View {
                 .foregroundColor(.blue)
 
             Text("Grant Contacts access to see names instead of phone numbers")
-                .font(.caption)
+                .font(.custom("Inter-Regular", size: 12))
                 .foregroundColor(.secondary)
 
             Button("Open Settings") {
@@ -138,7 +155,7 @@ struct ContentView: View {
                     NSWorkspace.shared.open(url)
                 }
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.borderedProminent)
             .controlSize(.small)
         }
         .padding(8)
@@ -155,26 +172,25 @@ struct ContentView: View {
                     .foregroundColor(.accentColor)
 
                 Text(contact.displayName)
-                    .font(.title2)
-                    .fontWeight(.medium)
+                    .font(.custom("CrimsonText-SemiBold", size: 22))
 
                 if contact.handles.count == 1 {
                     Text(contact.identifiers.first ?? "")
-                        .font(.caption)
+                        .font(.custom("Inter-Regular", size: 12))
                         .foregroundColor(.secondary)
                 } else {
                     VStack(spacing: 2) {
                         Text("\(contact.handles.count) numbers/emails")
-                            .font(.caption)
+                            .font(.custom("Inter-Regular", size: 12))
                             .foregroundColor(.secondary)
                         ForEach(contact.identifiers.prefix(3), id: \.self) { identifier in
                             Text(identifier)
-                                .font(.caption2)
+                                .font(.custom("Inter-Regular", size: 11))
                                 .foregroundColor(.secondary)
                         }
                         if contact.handles.count > 3 {
                             Text("+ \(contact.handles.count - 3) more")
-                                .font(.caption2)
+                                .font(.custom("Inter-Regular", size: 11))
                                 .foregroundColor(.secondary)
                         }
                     }
@@ -187,11 +203,11 @@ struct ContentView: View {
             // Recent messages preview
             VStack(alignment: .leading, spacing: 8) {
                 Text("Recent Messages")
-                    .font(.headline)
+                    .font(.custom("Inter-SemiBold", size: 15))
 
                 if viewModel.previewMessages.isEmpty {
                     Text("Loading...")
-                        .font(.caption)
+                        .font(.custom("Inter-Regular", size: 12))
                         .foregroundColor(.secondary)
                 } else {
                     ScrollView {
@@ -211,11 +227,13 @@ struct ContentView: View {
             // Date range
             VStack(alignment: .leading, spacing: 12) {
                 Text("Date Range")
-                    .font(.headline)
+                    .font(.custom("Inter-SemiBold", size: 15))
 
                 HStack {
                     DatePicker("From:", selection: $startDate, displayedComponents: .date)
+                        .font(.custom("Inter-Regular", size: 13))
                     DatePicker("To:", selection: $endDate, displayedComponents: .date)
+                        .font(.custom("Inter-Regular", size: 13))
                 }
             }
             .padding(.horizontal)
@@ -226,6 +244,7 @@ struct ContentView: View {
             VStack(spacing: 12) {
                 Button(action: exportMessages) {
                     Label("Export to Markdown", systemImage: "square.and.arrow.up")
+                        .font(.custom("Inter-Medium", size: 14))
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
@@ -238,7 +257,7 @@ struct ContentView: View {
 
                 if let error = viewModel.errorMessage {
                     Text(error)
-                        .font(.caption)
+                        .font(.custom("Inter-Regular", size: 12))
                         .foregroundColor(.red)
                 }
             }
@@ -279,15 +298,15 @@ struct ContactRow: View {
 
             VStack(alignment: .leading) {
                 Text(contact.displayName)
-                    .fontWeight(.medium)
+                    .font(.custom("Inter-Medium", size: 13))
                 HStack(spacing: 4) {
                     if contact.handles.count > 1 {
                         Text("\(contact.handles.count) numbers")
-                            .font(.caption)
+                            .font(.custom("Inter-Regular", size: 11))
                             .foregroundColor(.secondary)
                     } else {
                         Text(contact.identifiers.first ?? "")
-                            .font(.caption)
+                            .font(.custom("Inter-Regular", size: 11))
                             .foregroundColor(.secondary)
                     }
                 }
@@ -318,17 +337,16 @@ struct MessagePreviewRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 HStack {
                     Text(message.isFromMe ? "Me" : contactName)
-                        .font(.caption)
-                        .fontWeight(.medium)
+                        .font(.custom("Inter-Medium", size: 11))
                     Spacer()
                     Text(timeFormatter.string(from: message.date))
-                        .font(.caption2)
+                        .font(.custom("Inter-Regular", size: 10))
                         .foregroundColor(.secondary)
                 }
 
                 if !message.text.isEmpty {
                     Text(message.text)
-                        .font(.caption)
+                        .font(.custom("Inter-Regular", size: 11))
                         .foregroundColor(.secondary)
                         .lineLimit(2)
                 }
@@ -336,9 +354,9 @@ struct MessagePreviewRow: View {
                 if !message.attachments.isEmpty {
                     HStack(spacing: 4) {
                         Image(systemName: "paperclip")
-                            .font(.caption2)
+                            .font(.custom("Inter-Regular", size: 10))
                         Text("\(message.attachments.count) attachment\(message.attachments.count == 1 ? "" : "s")")
-                            .font(.caption2)
+                            .font(.custom("Inter-Regular", size: 10))
                     }
                     .foregroundColor(.secondary)
                 }

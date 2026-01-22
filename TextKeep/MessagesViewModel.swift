@@ -9,8 +9,9 @@ class MessagesViewModel: ObservableObject {
     @Published var isExporting = false
     @Published var errorMessage: String?
     @Published var previewMessages: [Message] = []
+    @Published var contactsAuthorized = false
 
-    let contactsService = ContactsService()
+    var contactsService = ContactsService()
     private let dbPath: String
 
     var selectedContact: ConsolidatedContact? {
@@ -25,12 +26,15 @@ class MessagesViewModel: ObservableObject {
 
     func checkAccessAndLoadContacts() {
         hasAccess = FileManager.default.isReadableFile(atPath: dbPath)
+        // Check initial contacts authorization
+        contactsAuthorized = contactsService.authorizationStatus == .authorized
 
         if hasAccess {
             // Request contacts access and then load
             Task {
                 _ = await contactsService.requestAccess()
                 await MainActor.run {
+                    contactsAuthorized = contactsService.authorizationStatus == .authorized
                     contactsService.loadContacts()
                 }
                 loadHandlesAndConsolidate()
