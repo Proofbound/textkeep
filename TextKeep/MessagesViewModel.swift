@@ -290,7 +290,8 @@ class MessagesViewModel: ObservableObject {
             let placeholders = handleIds.map { _ in "?" }.joined(separator: ", ")
 
             let query = """
-                SELECT DISTINCT m.ROWID, m.text, m.date, m.is_from_me, m.cache_has_attachments, m.attributedBody
+                SELECT DISTINCT m.ROWID, m.text, m.date, m.is_from_me, m.cache_has_attachments, m.attributedBody,
+                    m.associated_message_type, m.group_action_type
                 FROM message m
                 JOIN chat_message_join cmj ON m.ROWID = cmj.message_id
                 JOIN chat c ON cmj.chat_id = c.ROWID
@@ -319,6 +320,17 @@ class MessagesViewModel: ObservableObject {
             while sqlite3_step(statement) == SQLITE_ROW {
                 let id = Int(sqlite3_column_int(statement, 0))
 
+                // Read metadata fields
+                let associatedType = sqlite3_column_type(statement, 6) != SQLITE_NULL ?
+                    sqlite3_column_int(statement, 6) : nil
+                let groupActionType = sqlite3_column_type(statement, 7) != SQLITE_NULL ?
+                    sqlite3_column_int(statement, 7) : nil
+
+                // Skip removed reactions (3000-3005)
+                if let type = associatedType, type >= 3000 && type < 3006 {
+                    continue
+                }
+
                 var text = ""
                 if let textPtr = sqlite3_column_text(statement, 1) {
                     text = String(cString: textPtr)
@@ -331,6 +343,13 @@ class MessagesViewModel: ObservableObject {
                         text = self.extractTextFromAttributedBody(data)
                     }
                 }
+
+                // Format with metadata (reactions, group actions)
+                text = self.formatMessageWithMetadata(
+                    text: text,
+                    associatedType: associatedType,
+                    groupActionType: groupActionType
+                )
 
                 // Sanitize text
                 text = text
@@ -400,7 +419,8 @@ class MessagesViewModel: ObservableObject {
 
             let query = """
                 SELECT DISTINCT m.ROWID, m.text, m.date, m.is_from_me, m.cache_has_attachments,
-                       m.attributedBody, m.handle_id, h.id as sender_identifier
+                       m.attributedBody, m.handle_id, h.id as sender_identifier,
+                       m.associated_message_type, m.group_action_type
                 FROM message m
                 JOIN chat_message_join cmj ON m.ROWID = cmj.message_id
                 JOIN chat c ON cmj.chat_id = c.ROWID
@@ -426,6 +446,17 @@ class MessagesViewModel: ObservableObject {
             while sqlite3_step(statement) == SQLITE_ROW {
                 let id = Int(sqlite3_column_int(statement, 0))
 
+                // Read metadata fields
+                let associatedType = sqlite3_column_type(statement, 8) != SQLITE_NULL ?
+                    sqlite3_column_int(statement, 8) : nil
+                let groupActionType = sqlite3_column_type(statement, 9) != SQLITE_NULL ?
+                    sqlite3_column_int(statement, 9) : nil
+
+                // Skip removed reactions (3000-3005)
+                if let type = associatedType, type >= 3000 && type < 3006 {
+                    continue
+                }
+
                 var text = ""
                 if let textPtr = sqlite3_column_text(statement, 1) {
                     text = String(cString: textPtr)
@@ -438,6 +469,13 @@ class MessagesViewModel: ObservableObject {
                         text = self.extractTextFromAttributedBody(data)
                     }
                 }
+
+                // Format with metadata (reactions, group actions)
+                text = self.formatMessageWithMetadata(
+                    text: text,
+                    associatedType: associatedType,
+                    groupActionType: groupActionType
+                )
 
                 // Sanitize text
                 text = text
@@ -544,7 +582,8 @@ class MessagesViewModel: ObservableObject {
             let placeholders = handleIds.map { _ in "?" }.joined(separator: ", ")
 
             let query = """
-                SELECT DISTINCT m.ROWID, m.text, m.date, m.is_from_me, m.cache_has_attachments, m.attributedBody
+                SELECT DISTINCT m.ROWID, m.text, m.date, m.is_from_me, m.cache_has_attachments, m.attributedBody,
+                    m.associated_message_type, m.group_action_type
                 FROM message m
                 JOIN chat_message_join cmj ON m.ROWID = cmj.message_id
                 JOIN chat c ON cmj.chat_id = c.ROWID
@@ -582,6 +621,17 @@ class MessagesViewModel: ObservableObject {
             while sqlite3_step(statement) == SQLITE_ROW {
                 let id = Int(sqlite3_column_int(statement, 0))
 
+                // Read metadata fields
+                let associatedType = sqlite3_column_type(statement, 6) != SQLITE_NULL ?
+                    sqlite3_column_int(statement, 6) : nil
+                let groupActionType = sqlite3_column_type(statement, 7) != SQLITE_NULL ?
+                    sqlite3_column_int(statement, 7) : nil
+
+                // Skip removed reactions (3000-3005)
+                if let type = associatedType, type >= 3000 && type < 3006 {
+                    continue
+                }
+
                 var text = ""
                 // Try the text column first
                 if let textPtr = sqlite3_column_text(statement, 1) {
@@ -596,6 +646,13 @@ class MessagesViewModel: ObservableObject {
                         text = self.extractTextFromAttributedBody(data)
                     }
                 }
+
+                // Format with metadata (reactions, group actions)
+                text = self.formatMessageWithMetadata(
+                    text: text,
+                    associatedType: associatedType,
+                    groupActionType: groupActionType
+                )
 
                 let dateNano = sqlite3_column_double(statement, 2)
                 let date = Date(timeIntervalSinceReferenceDate: dateNano / 1_000_000_000)
@@ -677,7 +734,8 @@ class MessagesViewModel: ObservableObject {
 
             let query = """
                 SELECT DISTINCT m.ROWID, m.text, m.date, m.is_from_me, m.cache_has_attachments,
-                       m.attributedBody, m.handle_id, h.id as sender_identifier
+                       m.attributedBody, m.handle_id, h.id as sender_identifier,
+                       m.associated_message_type, m.group_action_type
                 FROM message m
                 JOIN chat_message_join cmj ON m.ROWID = cmj.message_id
                 JOIN chat c ON cmj.chat_id = c.ROWID
@@ -710,6 +768,17 @@ class MessagesViewModel: ObservableObject {
             while sqlite3_step(statement) == SQLITE_ROW {
                 let id = Int(sqlite3_column_int(statement, 0))
 
+                // Read metadata fields
+                let associatedType = sqlite3_column_type(statement, 8) != SQLITE_NULL ?
+                    sqlite3_column_int(statement, 8) : nil
+                let groupActionType = sqlite3_column_type(statement, 9) != SQLITE_NULL ?
+                    sqlite3_column_int(statement, 9) : nil
+
+                // Skip removed reactions (3000-3005)
+                if let type = associatedType, type >= 3000 && type < 3006 {
+                    continue
+                }
+
                 var text = ""
                 if let textPtr = sqlite3_column_text(statement, 1) {
                     text = String(cString: textPtr)
@@ -722,6 +791,13 @@ class MessagesViewModel: ObservableObject {
                         text = self.extractTextFromAttributedBody(data)
                     }
                 }
+
+                // Format with metadata (reactions, group actions)
+                text = self.formatMessageWithMetadata(
+                    text: text,
+                    associatedType: associatedType,
+                    groupActionType: groupActionType
+                )
 
                 let dateNano = sqlite3_column_double(statement, 2)
                 let date = Date(timeIntervalSinceReferenceDate: dateNano / 1_000_000_000)
@@ -834,79 +910,261 @@ class MessagesViewModel: ObservableObject {
         return mapping
     }
 
+    // MARK: - Message Metadata Formatting
+
+    private func formatMessageWithMetadata(text: String, associatedType: Int32?, groupActionType: Int32?) -> String {
+        // Handle reaction messages (2000-2005)
+        if let type = associatedType, type >= 2000 && type < 3000 {
+            let (emoji, verb) = reactionEmojiAndVerb(for: type)
+
+            // Extract quoted message if present
+            if text.hasPrefix("Loved ") || text.hasPrefix("Liked ") ||
+               text.hasPrefix("Disliked ") || text.hasPrefix("Laughed at ") ||
+               text.hasPrefix("Emphasized ") || text.hasPrefix("Questioned ") {
+                // Remove the verb prefix, keep the quoted message
+                let quotedPart = text.components(separatedBy: " ").dropFirst().joined(separator: " ")
+                return "\(emoji) \(verb): \(quotedPart)"
+            }
+
+            return "\(emoji) \(verb) this message"
+        }
+
+        // Handle group action messages (1 = member change)
+        if let type = groupActionType, type == 1 {
+            return "ℹ️ [System] \(text)"
+        }
+
+        // Regular message - return as-is
+        return text
+    }
+
+    private func reactionEmojiAndVerb(for type: Int32) -> (String, String) {
+        switch type {
+        case 2000: return ("❤️", "Loved")
+        case 2001: return ("👍", "Liked")
+        case 2002: return ("👎", "Disliked")
+        case 2003: return ("😂", "Laughed at")
+        case 2004: return ("‼️", "Emphasized")
+        case 2005: return ("❓", "Questioned")
+        case 3000...3005: return ("", "Removed reaction")  // Skip in export
+        default: return ("", "")
+        }
+    }
+
+    // MARK: - AttributedBody Text Extraction
+
     private func extractTextFromAttributedBody(_ data: Data) -> String {
-        // The attributedBody uses Apple's "typedstream" format
-        // The text is stored after a specific byte pattern
+        // Three-strategy approach to extract text from Apple's typedstream format
 
-        let bytes = [UInt8](data)
-        guard bytes.count > 10 else { return "" }
-
-        // Look for the pattern that precedes the message text
-        // In typedstream, strings are often preceded by their length as a varint
-        // or by specific marker bytes
-
-        // Strategy: Find "NSString" or "NSMutableString" marker, then extract the text after it
-        // The text length is usually encoded before the actual text
-
-        // First, try to find text after the NSString marker
-        if let text = extractTextAfterNSStringMarker(bytes) {
+        // Strategy 1: Try NSKeyedUnarchiver (safest, most reliable)
+        if let text = extractViaKeyedUnarchiver(data), !text.isEmpty {
             return text
         }
 
-        // Fallback: look for the largest contiguous UTF-8 text block
-        // that doesn't contain Objective-C class names
-        if let text = extractLargestTextBlock(bytes) {
+        // Strategy 2: Pattern-based extraction (handles most cases)
+        if let text = extractViaPatternMatching(data), !text.isEmpty {
+            return text
+        }
+
+        // Strategy 3: Heuristic scanning (fallback for edge cases)
+        if let text = extractViaHeuristicScanning(data), !text.isEmpty {
             return text
         }
 
         return ""
     }
 
-    private func extractTextAfterNSStringMarker(_ bytes: [UInt8]) -> String? {
-        // Look for "NSString" or similar markers in the data
-        let nsStringPattern: [UInt8] = Array("NSString".utf8)
-        let nsMutableStringPattern: [UInt8] = Array("NSMutableString".utf8)
+    private func extractViaKeyedUnarchiver(_ data: Data) -> String? {
+        do {
+            // Modern attributed strings use NSKeyedArchiver
+            let unarchiver = try NSKeyedUnarchiver(forReadingFrom: data)
+            unarchiver.requiresSecureCoding = false
 
-        var searchStart = 0
-
-        // Find the last occurrence of NSString/NSMutableString (the actual content, not class def)
-        var lastMarkerEnd = -1
-
-        for i in 0..<(bytes.count - nsStringPattern.count) {
-            if matchesPattern(bytes, at: i, pattern: nsMutableStringPattern) {
-                lastMarkerEnd = i + nsMutableStringPattern.count
-            } else if matchesPattern(bytes, at: i, pattern: nsStringPattern) {
-                lastMarkerEnd = i + nsStringPattern.count
-            }
-        }
-
-        if lastMarkerEnd > 0 {
-            searchStart = lastMarkerEnd
-        }
-
-        // After the marker, look for the text content
-        // Skip some header bytes and find readable text
-        var i = searchStart
-        while i < bytes.count - 1 {
-            // Look for a length byte followed by that many readable characters
-            let potentialLength = Int(bytes[i])
-
-            if potentialLength > 0 && potentialLength < 10000 && i + 1 + potentialLength <= bytes.count {
-                let textBytes = Array(bytes[(i + 1)..<(i + 1 + potentialLength)])
-
-                // Check if these bytes form valid UTF-8 text
-                if let text = String(bytes: textBytes, encoding: .utf8) {
-                    let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if isLikelyMessageText(trimmed) {
-                        return trimmed
-                    }
-                }
+            if let attributedString = try unarchiver.decodeTopLevelObject(forKey: NSKeyedArchiveRootObjectKey) as? NSAttributedString {
+                let text = attributedString.string
+                return text.isEmpty ? nil : text
             }
 
-            i += 1
+            // Try alternate key
+            if let attributedString = try unarchiver.decodeTopLevelObject(forKey: "NS.string") as? NSAttributedString {
+                let text = attributedString.string
+                return text.isEmpty ? nil : text
+            }
+        } catch {
+            // Silently fail and try next strategy
         }
 
         return nil
+    }
+
+    private func extractViaPatternMatching(_ data: Data) -> String? {
+        let bytes = [UInt8](data)
+        guard bytes.count > 20 else { return nil }
+
+        // Find all NSString/NSMutableString markers
+        let markers = findStringMarkers(in: bytes)
+
+        // Try each marker location
+        for markerEnd in markers {
+            var i = markerEnd
+
+            // Skip class metadata bytes (typically 5-10 bytes)
+            i += min(10, bytes.count - i - 10)
+
+            while i < bytes.count - 5 {
+                // Look for length-prefixed strings
+                // Single-byte length (0x01-0x7F)
+                if bytes[i] > 0 && bytes[i] < 0x80 {
+                    let length = Int(bytes[i])
+                    if length >= 5 && i + 1 + length <= bytes.count {
+                        if let text = extractAndValidateText(bytes, start: i + 1, length: length) {
+                            return text
+                        }
+                    }
+                }
+                // Multi-byte varint (0x80-0xFF marks continuation)
+                else if bytes[i] >= 0x80 && i + 2 < bytes.count {
+                    let length = decodeVarint(bytes, startingAt: i)
+                    let varintSize = varintByteCount(bytes, startingAt: i)
+
+                    if length >= 5 && length < 10000 && i + varintSize + length <= bytes.count {
+                        if let text = extractAndValidateText(bytes, start: i + varintSize, length: length) {
+                            return text
+                        }
+                    }
+                }
+
+                i += 1
+            }
+        }
+
+        return nil
+    }
+
+    private func findStringMarkers(in bytes: [UInt8]) -> [Int] {
+        let patterns = [
+            Array("NSString".utf8),
+            Array("NSMutableString".utf8)
+        ]
+
+        var markers: [Int] = []
+        for pattern in patterns {
+            var i = 0
+            while i < bytes.count - pattern.count {
+                if matchesPattern(bytes, at: i, pattern: pattern) {
+                    markers.append(i + pattern.count)
+                }
+                i += 1
+            }
+        }
+
+        return markers.sorted()
+    }
+
+    private func extractAndValidateText(_ bytes: [UInt8], start: Int, length: Int) -> String? {
+        guard start + length <= bytes.count else { return nil }
+
+        let textBytes = Array(bytes[start..<(start + length)])
+        guard let text = String(bytes: textBytes, encoding: .utf8) else { return nil }
+
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // More rigorous validation
+        guard trimmed.count >= 5 else { return nil }  // Minimum meaningful message
+        guard isActualMessageText(trimmed) else { return nil }
+
+        return trimmed
+    }
+
+    private func decodeVarint(_ bytes: [UInt8], startingAt index: Int) -> Int {
+        var result = 0
+        var shift = 0
+        var i = index
+
+        while i < bytes.count {
+            let byte = bytes[i]
+            result |= Int(byte & 0x7F) << shift
+
+            if (byte & 0x80) == 0 {
+                break
+            }
+
+            shift += 7
+            i += 1
+
+            if shift > 28 { return 0 }  // Invalid varint
+        }
+
+        return result
+    }
+
+    private func varintByteCount(_ bytes: [UInt8], startingAt index: Int) -> Int {
+        var count = 0
+        var i = index
+
+        while i < bytes.count {
+            count += 1
+            if (bytes[i] & 0x80) == 0 {
+                break
+            }
+            i += 1
+            if count > 5 { return 1 }  // Invalid, treat as single byte
+        }
+
+        return count
+    }
+
+    private func extractViaHeuristicScanning(_ data: Data) -> String? {
+        let bytes = [UInt8](data)
+        var bestText = ""
+
+        // Only scan after finding reasonable starting points
+        let potentialStarts = findPotentialTextStarts(in: bytes)
+
+        for start in potentialStarts {
+            // Try various lengths, prioritizing longer strings
+            for length in stride(from: min(bytes.count - start, 5000), through: 10, by: -5) {
+                guard start + length <= bytes.count else { continue }
+
+                let slice = Array(bytes[start..<(start + length)])
+                if let text = String(bytes: slice, encoding: .utf8) {
+                    let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if isActualMessageText(trimmed) && trimmed.count > bestText.count {
+                        bestText = trimmed
+                    }
+                }
+            }
+        }
+
+        return bestText.isEmpty ? nil : bestText
+    }
+
+    private func findPotentialTextStarts(in bytes: [UInt8]) -> [Int] {
+        var starts: [Int] = []
+
+        // Look for patterns that typically precede text:
+        // - After NSString markers
+        // - Transition from control chars to printable
+        // - After null bytes
+
+        for i in 0..<bytes.count {
+            if i > 0 {
+                let prev = bytes[i - 1]
+                let curr = bytes[i]
+
+                // Transition from control chars to printable
+                if prev < 32 && curr >= 32 && curr < 127 {
+                    starts.append(i)
+                }
+
+                // After null bytes
+                if prev == 0 && curr != 0 {
+                    starts.append(i)
+                }
+            }
+        }
+
+        return starts
     }
 
     private func matchesPattern(_ bytes: [UInt8], at index: Int, pattern: [UInt8]) -> Bool {
@@ -919,56 +1177,42 @@ class MessagesViewModel: ObservableObject {
         return true
     }
 
-    private func extractLargestTextBlock(_ bytes: [UInt8]) -> String? {
-        var bestText = ""
-        var i = 0
-
-        while i < bytes.count {
-            // Try to decode a string starting at position i with various lengths
-            for length in stride(from: min(bytes.count - i, 5000), through: 1, by: -1) {
-                let slice = Array(bytes[i..<(i + length)])
-                if let text = String(bytes: slice, encoding: .utf8) {
-                    let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if isLikelyMessageText(trimmed) && trimmed.count > bestText.count {
-                        bestText = trimmed
-                    }
-                }
-            }
-            i += 1
-        }
-
-        return bestText.isEmpty ? nil : bestText
-    }
-
-    private func isLikelyMessageText(_ text: String) -> Bool {
-        // Filter out Objective-C runtime strings and metadata
-        let blacklist = [
+    private func isActualMessageText(_ text: String) -> Bool {
+        // Reject metadata patterns
+        let metadataPatterns = [
             "NSString", "NSMutableString", "NSAttributedString", "NSMutableAttributedString",
             "NSDictionary", "NSMutableDictionary", "NSArray", "NSMutableArray",
             "NSNumber", "NSValue", "NSData", "NSObject", "NSFont", "NSColor",
             "NSParagraphStyle", "NSMutableParagraphStyle", "NSKern", "NSBaselineOffset",
             "streamtyped", "__kIM", "IMMessagePart", "IMFileTransfer",
-            "$class", "$classes", "$classname"
+            "$class", "$classes", "$classname", "NSKeyedArchiver"
         ]
 
-        for forbidden in blacklist {
-            if text == forbidden || text.hasPrefix(forbidden + "\0") {
+        for pattern in metadataPatterns {
+            if text.contains(pattern) {
                 return false
             }
         }
 
-        // Must have at least some content
-        guard text.count >= 1 else { return false }
+        // Minimum meaningful length
+        guard text.count >= 5 else { return false }
 
-        // Should be mostly printable characters
+        // Stricter printable threshold (90% instead of 80%)
         let printableCount = text.unicodeScalars.filter { scalar in
             CharacterSet.alphanumerics.contains(scalar) ||
             CharacterSet.punctuationCharacters.contains(scalar) ||
             CharacterSet.whitespaces.contains(scalar) ||
-            scalar.value > 127 // Allow unicode (emoji, etc)
+            scalar.value > 127  // Unicode (emoji, etc.)
         }.count
 
-        return Double(printableCount) / Double(text.count) > 0.8
+        let printableRatio = Double(printableCount) / Double(text.count)
+        guard printableRatio > 0.9 else { return false }
+
+        // Reject single character repeated
+        let uniqueChars = Set(text)
+        guard uniqueChars.count >= 3 else { return false }
+
+        return true
     }
 
     private func isImageFile(_ path: String) -> Bool {
