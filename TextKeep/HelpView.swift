@@ -199,7 +199,7 @@ struct HelpView: View {
                             .font(.custom("CrimsonText-SemiBold", size: 18))
 
                         VStack(spacing: 8) {
-                            Text("Version 1.2.0")
+                            Text("Version 1.3.2")
                                 .font(.custom("Inter-Regular", size: 11))
                                 .foregroundColor(.secondary)
 

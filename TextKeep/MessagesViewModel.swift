@@ -332,17 +332,25 @@ class MessagesViewModel: ObservableObject {
                 }
 
                 var text = ""
+                var textFromColumn = ""
+                var textFromBlob = ""
+
+                // Extract from text column
                 if let textPtr = sqlite3_column_text(statement, 1) {
-                    text = String(cString: textPtr)
+                    textFromColumn = String(cString: textPtr)
                 }
 
-                if text.isEmpty {
-                    if let blobPointer = sqlite3_column_blob(statement, 5) {
-                        let blobSize = sqlite3_column_bytes(statement, 5)
+                // Extract from attributedBody blob
+                if let blobPointer = sqlite3_column_blob(statement, 5) {
+                    let blobSize = sqlite3_column_bytes(statement, 5)
+                    if blobSize > 0 {
                         let data = Data(bytes: blobPointer, count: Int(blobSize))
-                        text = self.extractTextFromAttributedBody(data)
+                        textFromBlob = self.extractTextFromAttributedBody(data)
                     }
                 }
+
+                // Use whichever source is longer (more complete)
+                text = textFromBlob.count > textFromColumn.count ? textFromBlob : textFromColumn
 
                 // Format with metadata (reactions, group actions)
                 text = self.formatMessageWithMetadata(
@@ -360,6 +368,12 @@ class MessagesViewModel: ObservableObject {
                     .replacingOccurrences(of: "\u{200C}", with: "") // Zero-width non-joiner
                     // Note: keeping U+200D (zero-width joiner) as it's used in emoji sequences
                     .replacingOccurrences(of: "\u{FEFF}", with: "") // BOM
+                    // Remove attachment identifiers (at_X_UUID format)
+                    .replacingOccurrences(
+                        of: "at_\\d+_[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}",
+                        with: "",
+                        options: .regularExpression
+                    )
                     .filter { char in
                         guard let ascii = char.asciiValue else { return true }
                         return ascii >= 32 || char == "\n" || char == "\t"
@@ -458,17 +472,25 @@ class MessagesViewModel: ObservableObject {
                 }
 
                 var text = ""
+                var textFromColumn = ""
+                var textFromBlob = ""
+
+                // Extract from text column
                 if let textPtr = sqlite3_column_text(statement, 1) {
-                    text = String(cString: textPtr)
+                    textFromColumn = String(cString: textPtr)
                 }
 
-                if text.isEmpty {
-                    if let blobPointer = sqlite3_column_blob(statement, 5) {
-                        let blobSize = sqlite3_column_bytes(statement, 5)
+                // Extract from attributedBody blob
+                if let blobPointer = sqlite3_column_blob(statement, 5) {
+                    let blobSize = sqlite3_column_bytes(statement, 5)
+                    if blobSize > 0 {
                         let data = Data(bytes: blobPointer, count: Int(blobSize))
-                        text = self.extractTextFromAttributedBody(data)
+                        textFromBlob = self.extractTextFromAttributedBody(data)
                     }
                 }
+
+                // Use whichever source is longer (more complete)
+                text = textFromBlob.count > textFromColumn.count ? textFromBlob : textFromColumn
 
                 // Format with metadata (reactions, group actions)
                 text = self.formatMessageWithMetadata(
@@ -485,6 +507,12 @@ class MessagesViewModel: ObservableObject {
                     .replacingOccurrences(of: "\u{200B}", with: "")
                     .replacingOccurrences(of: "\u{200C}", with: "")
                     .replacingOccurrences(of: "\u{FEFF}", with: "")
+                    // Remove attachment identifiers (at_X_UUID format)
+                    .replacingOccurrences(
+                        of: "at_\\d+_[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}",
+                        with: "",
+                        options: .regularExpression
+                    )
                     .filter { char in
                         guard let ascii = char.asciiValue else { return true }
                         return ascii >= 32 || char == "\n" || char == "\t"
@@ -654,6 +682,26 @@ class MessagesViewModel: ObservableObject {
                     groupActionType: groupActionType
                 )
 
+                // Sanitize text
+                text = text
+                    .replacingOccurrences(of: "\0", with: "")
+                    .replacingOccurrences(of: "\u{FFFC}", with: "")
+                    .replacingOccurrences(of: "\u{FFFD}", with: "")
+                    .replacingOccurrences(of: "\u{200B}", with: "")
+                    .replacingOccurrences(of: "\u{200C}", with: "")
+                    .replacingOccurrences(of: "\u{FEFF}", with: "")
+                    // Remove attachment identifiers (at_X_UUID format)
+                    .replacingOccurrences(
+                        of: "at_\\d+_[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}",
+                        with: "",
+                        options: .regularExpression
+                    )
+                    .filter { char in
+                        guard let ascii = char.asciiValue else { return true }
+                        return ascii >= 32 || char == "\n" || char == "\t"
+                    }
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+
                 let dateNano = sqlite3_column_double(statement, 2)
                 let date = Date(timeIntervalSinceReferenceDate: dateNano / 1_000_000_000)
 
@@ -780,17 +828,25 @@ class MessagesViewModel: ObservableObject {
                 }
 
                 var text = ""
+                var textFromColumn = ""
+                var textFromBlob = ""
+
+                // Extract from text column
                 if let textPtr = sqlite3_column_text(statement, 1) {
-                    text = String(cString: textPtr)
+                    textFromColumn = String(cString: textPtr)
                 }
 
-                if text.isEmpty {
-                    if let blobPointer = sqlite3_column_blob(statement, 5) {
-                        let blobSize = sqlite3_column_bytes(statement, 5)
+                // Extract from attributedBody blob
+                if let blobPointer = sqlite3_column_blob(statement, 5) {
+                    let blobSize = sqlite3_column_bytes(statement, 5)
+                    if blobSize > 0 {
                         let data = Data(bytes: blobPointer, count: Int(blobSize))
-                        text = self.extractTextFromAttributedBody(data)
+                        textFromBlob = self.extractTextFromAttributedBody(data)
                     }
                 }
+
+                // Use whichever source is longer (more complete)
+                text = textFromBlob.count > textFromColumn.count ? textFromBlob : textFromColumn
 
                 // Format with metadata (reactions, group actions)
                 text = self.formatMessageWithMetadata(
@@ -798,6 +854,26 @@ class MessagesViewModel: ObservableObject {
                     associatedType: associatedType,
                     groupActionType: groupActionType
                 )
+
+                // Sanitize text
+                text = text
+                    .replacingOccurrences(of: "\0", with: "")
+                    .replacingOccurrences(of: "\u{FFFC}", with: "")
+                    .replacingOccurrences(of: "\u{FFFD}", with: "")
+                    .replacingOccurrences(of: "\u{200B}", with: "")
+                    .replacingOccurrences(of: "\u{200C}", with: "")
+                    .replacingOccurrences(of: "\u{FEFF}", with: "")
+                    // Remove attachment identifiers (at_X_UUID format)
+                    .replacingOccurrences(
+                        of: "at_\\d+_[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}",
+                        with: "",
+                        options: .regularExpression
+                    )
+                    .filter { char in
+                        guard let ascii = char.asciiValue else { return true }
+                        return ascii >= 32 || char == "\n" || char == "\t"
+                    }
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
 
                 let dateNano = sqlite3_column_double(statement, 2)
                 let date = Date(timeIntervalSinceReferenceDate: dateNano / 1_000_000_000)
@@ -961,10 +1037,11 @@ class MessagesViewModel: ObservableObject {
             return text
         }
 
-        // Strategy 2: Pattern-based extraction (handles most cases)
-        if let text = extractViaPatternMatching(data), !text.isEmpty {
-            return text
-        }
+        // Strategy 2: SKIP pattern-based extraction - it's unreliable
+        // The length-byte parsing causes truncation issues
+        // if let text = extractViaPatternMatching(data), !text.isEmpty {
+        //     return text
+        // }
 
         // Strategy 3: Heuristic scanning (fallback for edge cases)
         if let text = extractViaHeuristicScanning(data), !text.isEmpty {
@@ -991,7 +1068,11 @@ class MessagesViewModel: ObservableObject {
                 return text.isEmpty ? nil : text
             }
         } catch {
-            // Silently fail and try next strategy
+            // NSKeyedUnarchiver failed - try NSUnarchiver for old typedstream format
+            if let attributedString = NSUnarchiver.unarchiveObject(with: data) as? NSAttributedString {
+                let text = attributedString.string
+                return text.isEmpty ? nil : text
+            }
         }
 
         return nil
@@ -1123,7 +1204,8 @@ class MessagesViewModel: ObservableObject {
 
         for start in potentialStarts {
             // Try various lengths, prioritizing longer strings
-            for length in stride(from: min(bytes.count - start, 5000), through: 10, by: -5) {
+            // Removed 5000 byte limit - scan up to 100KB to avoid truncating long messages
+            for length in stride(from: min(bytes.count - start, 100000), through: 20, by: -10) {
                 guard start + length <= bytes.count else { continue }
 
                 let slice = Array(bytes[start..<(start + length)])
@@ -1188,14 +1270,21 @@ class MessagesViewModel: ObservableObject {
             "$class", "$classes", "$classname", "NSKeyedArchiver"
         ]
 
+        // Check if text contains ANY part of these patterns
         for pattern in metadataPatterns {
-            if text.contains(pattern) {
+            // Reject if text contains the pattern OR if pattern starts with text (catches truncated metadata)
+            if text.contains(pattern) || pattern.hasPrefix(text) {
                 return false
             }
         }
 
-        // Minimum meaningful length
-        guard text.count >= 5 else { return false }
+        // Also reject if text looks like a class name (starts with NS, IM, or __)
+        if text.hasPrefix("NS") || text.hasPrefix("IM") || text.hasPrefix("__") || text.hasPrefix("$") {
+            return false
+        }
+
+        // Minimum meaningful length (increased from 5 to 10)
+        guard text.count >= 10 else { return false }
 
         // Stricter printable threshold (90% instead of 80%)
         let printableCount = text.unicodeScalars.filter { scalar in

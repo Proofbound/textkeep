@@ -17,6 +17,8 @@ A macOS app for exporting your iMessage conversations to Markdown files.
 - **Message Preview** - See recent messages before exporting to verify you have the right conversation
 - **Attachment Support** - Copies images, videos, and audio files to an `attachments/` folder with proper Markdown links
 - **Date Range Filtering** - Export only messages within a specific date range
+- **Reaction Support** - iMessage reactions displayed with emoji (❤️ Loved, 👍 Liked, 😂 Laughed at, etc.)
+- **Group Actions** - System messages for member changes formatted clearly (added/removed participants)
 - **Built-in Help** - Comprehensive documentation accessible from within the app
 
 ## Requirements
@@ -30,7 +32,7 @@ A macOS app for exporting your iMessage conversations to Markdown files.
 ### Download Pre-built App (Recommended)
 
 1. Download the latest release from [GitHub Releases](https://github.com/Proofbound/textkeep/releases)
-2. Unzip `TextKeep-v1.2.0.zip`
+2. Unzip `TextKeep-v1.3.2.zip`
 3. Move `TextKeep.app` to your Applications folder
 4. Launch and follow the permission prompts
 
@@ -74,6 +76,9 @@ A macOS app for exporting your iMessage conversations to Markdown files.
 10:32 AM - **John Doe**
 > Great! Just finished that project.
 
+10:33 AM - **Me**
+> ❤️ Loved: "Great! Just finished that project."
+
 ![Image: photo.jpg](attachments/1_photo.jpg)
 ```
 
@@ -90,6 +95,9 @@ A macOS app for exporting your iMessage conversations to Markdown files.
 ---
 
 ## January 15, 2025
+
+9:15 AM - **System**
+> ℹ️ [System] John Doe added Bob Wilson
 
 10:30 AM - **John Doe**
 > Hey everyone, meeting at 3pm?
@@ -113,7 +121,8 @@ A macOS app for exporting your iMessage conversations to Markdown files.
 - Built with SwiftUI
 - Uses SQLite3 to read the Messages database directly
 - Uses the Contacts framework for contact name resolution
-- Handles the `attributedBody` blob format for newer macOS message storage
+- Handles both modern (NSKeyedArchiver) and legacy (typedstream) `attributedBody` blob formats
+- Dual-source text extraction ensures complete message recovery from database
 
 ## Known Limitations
 
@@ -124,6 +133,16 @@ A macOS app for exporting your iMessage conversations to Markdown files.
 TextKeep is developed by [Proofbound](https://proofbound.com), creators of AI-powered book creation tools. We believe in building useful, privacy-respecting software.
 
 ## Changelog
+
+### v1.3.2 (2026-01-23)
+- **Fixed Message Truncation** - Added NSUnarchiver support for legacy typedstream format messages (fixes truncated text from older conversations)
+- **Dual-Source Text Extraction** - Compares both `text` column and `attributedBody` blob, uses whichever is more complete
+- **Improved Blob Parsing** - Increased heuristic scanning limit from 5KB to 100KB for very long messages
+- **Enhanced About Menu** - Displays Proofbound copyright and link to proofbound.com
+- **Help Menu** - Added Help menu (Cmd+?) that opens comprehensive help documentation in separate window
+- **Reaction Formatting** - Display iMessage reactions with emoji (❤️ Loved, 👍 Liked, etc.)
+- **Group Action Messages** - Show system messages for group member changes (ℹ️ [System] Added Person)
+- **Cleaner Exports** - Removed attachment identifier artifacts and metadata leakage from exports
 
 ### v1.2.0 (2026-01-22)
 - **Group Message Support** - Full support for exporting group chats with proper sender attribution
