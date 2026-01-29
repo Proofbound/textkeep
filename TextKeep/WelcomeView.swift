@@ -6,6 +6,14 @@ struct WelcomeView: View {
     private let privacyURL = URL(string: "https://app.proofbound.com/privacy")!
     private let termsURL = URL(string: "https://app.proofbound.com/terms")!
 
+    private var proofboundText: AttributedString {
+        var string = AttributedString("Part of the family of Proofbound™ products that make it easy to publish your own book on Amazon")
+        if let range = string.range(of: "Proofbound™") {
+            string[range].link = URL(string: "https://proofbound.com")
+        }
+        return string
+    }
+
     var body: some View {
         VStack(spacing: 24) {
             Spacer()
@@ -23,6 +31,13 @@ struct WelcomeView: View {
                 Text("Export your Messages to Markdown")
                     .font(.custom("Inter-Regular", size: 16))
                     .foregroundColor(.secondary)
+
+                Text(proofboundText)
+                    .font(.custom("Inter-Regular", size: 13))
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+                    .padding(.top, 8)
             }
 
             Spacer()
@@ -71,6 +86,10 @@ struct WelcomeView: View {
             }
             .font(.custom("Inter-Regular", size: 12))
             .foregroundColor(.secondary)
+
+            Text("Version 1.3.3")
+                .font(.custom("Inter-Regular", size: 11))
+                .foregroundColor(.secondary)
 
             Spacer()
         }

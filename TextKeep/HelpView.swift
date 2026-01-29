@@ -186,6 +186,11 @@ struct HelpView: View {
                                 problem: "Missing messages",
                                 solution: "Check the date range selection. Some conversations may have messages outside the selected range."
                             )
+
+                            TroubleshootItem(
+                                problem: "Images or attachments are missing",
+                                solution: "If images are stored in iCloud and not downloaded locally, they won't appear in the export. Open the Messages app, scroll through the conversation, and tap each image to download it before exporting."
+                            )
                         }
                     }
                 )
@@ -199,7 +204,7 @@ struct HelpView: View {
                             .font(.custom("CrimsonText-SemiBold", size: 18))
 
                         VStack(spacing: 8) {
-                            Text("Version 1.3.2")
+                            Text("Version 1.3.3")
                                 .font(.custom("Inter-Regular", size: 11))
                                 .foregroundColor(.secondary)
 
