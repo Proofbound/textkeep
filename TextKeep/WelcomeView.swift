@@ -36,7 +36,9 @@ struct WelcomeView: View {
                     .font(.custom("Inter-Regular", size: 13))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 40)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: 400)
+                    .padding(.horizontal, 32)
                     .padding(.top, 8)
             }
 
