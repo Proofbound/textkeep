@@ -77,11 +77,119 @@ Models.swift               → Data structures
 
 Version is set in `project.pbxproj` via `MARKETING_VERSION`. Update in both Debug and Release configurations.
 
-## Distribution
+## Distribution & Release Process
 
-For public releases:
-1. Update `MARKETING_VERSION` in project.pbxproj
-2. In Xcode: Product > Archive
-3. Distribute with Developer ID (handles signing and notarization automatically)
-4. Export notarized app and create zip file
-5. Upload to GitHub releases with version tag (e.g., v1.1.1)
+### Version Bumping
+
+Version is controlled by `MARKETING_VERSION` in `project.pbxproj` (set in both Debug and Release configurations).
+
+```bash
+# Update version in project file (replace X.X.X with new version)
+# Lines ~363 and ~394 in project.pbxproj
+MARKETING_VERSION = 1.3.4;
+```
+
+### Full Release Process
+
+**1. Update Version Number**
+```bash
+# Edit project.pbxproj to bump MARKETING_VERSION
+# Both Debug and Release configurations must match
+```
+
+**2. Build and Notarize in Xcode**
+```bash
+# Open Xcode
+Product > Archive
+# When archive completes, click "Distribute App"
+# Select "Developer ID" distribution
+# Choose "Upload" (this notarizes automatically)
+# Wait for notarization to complete (check email or Xcode Organizer)
+# Click "Export Notarized App" and save to a temporary location
+```
+
+**3. Copy Notarized App to Repo**
+```bash
+cd "/Users/sprague/dev/MacOS Apps/MessagesExporter"
+# Copy the notarized TextKeep.app from Xcode export to repo root
+cp -R ~/path/to/exported/TextKeep.app .
+```
+
+**4. Staple Notarization Ticket (Optional but Recommended)**
+```bash
+# This embeds the notarization ticket so the app works offline
+xcrun stapler staple TextKeep.app
+# Should output: "The staple and validate action worked!"
+```
+
+**5. Create Versioned Zip**
+```bash
+# Use ditto to preserve all metadata and notarization
+ditto -c -k --keepParent TextKeep.app TextKeep-v1.3.4.zip
+# Result: TextKeep-v1.3.4.zip (~1.2MB)
+```
+
+**6. Commit and Push**
+```bash
+git add .
+git commit -m "Release v1.3.4: Description of changes"
+git push
+```
+
+**7. Create GitHub Release**
+```bash
+# Using gh CLI (recommended)
+gh release create v1.3.4 TextKeep-v1.3.4.zip \
+  --title "Release v1.3.4: Feature description" \
+  --notes "$(cat <<'EOF'
+## New Features
+- Feature 1
+- Feature 2
+
+## Improvements
+- Improvement 1
+
+## Bug Fixes
+- Fix 1
+EOF
+)"
+
+# Or manually at: https://github.com/Proofbound/textkeep/releases/new
+```
+
+**8. Update Version Check Endpoint**
+```bash
+# Update https://proofbound.com/textkeep/version.json
+{
+  "version": "1.3.4",
+  "downloadUrl": "https://proofbound.com/textkeep"
+}
+```
+
+### Quick Reference Commands
+
+```bash
+# Complete release from notarized app in Downloads
+cd "/Users/sprague/dev/MacOS Apps/MessagesExporter"
+cp -R ~/Downloads/TextKeep.app .
+xcrun stapler staple TextKeep.app
+ditto -c -k --keepParent TextKeep.app TextKeep-v1.3.4.zip
+git add . && git commit -m "Release v1.3.4: Description"
+git push
+gh release create v1.3.4 TextKeep-v1.3.4.zip --title "..." --notes "..."
+# Then update version.json on proofbound.com
+```
+
+### Update Checker System
+
+TextKeep v1.3.4+ includes automatic update checking:
+- Users can check via Help menu → "Check for Updates..." (Cmd+U)
+- Or via "Check for Updates" button in Help view footer
+- Fetches latest version from `https://proofbound.com/textkeep/version.json`
+- On new release, update the JSON file to notify users:
+  ```json
+  {
+    "version": "1.3.5",
+    "downloadUrl": "https://proofbound.com/textkeep"
+  }
+  ```
