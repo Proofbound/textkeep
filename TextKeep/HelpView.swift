@@ -3,6 +3,10 @@ import SwiftUI
 struct HelpView: View {
     @Environment(\.dismiss) private var dismiss
 
+    // Optional update checker for version checking functionality
+    var updateChecker: UpdateChecker?
+    var onUpdateCheckComplete: (() -> Void)?
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 32) {
@@ -204,9 +208,31 @@ struct HelpView: View {
                             .font(.custom("CrimsonText-SemiBold", size: 18))
 
                         VStack(spacing: 8) {
-                            Text("Version 1.3.3")
+                            Text("Version \(Bundle.main.appVersion)")
                                 .font(.custom("Inter-Regular", size: 11))
                                 .foregroundColor(.secondary)
+
+                            // Check for Updates button (if updateChecker provided)
+                            if let checker = updateChecker {
+                                Button {
+                                    Task {
+                                        await checker.checkForUpdates()
+                                        onUpdateCheckComplete?()
+                                    }
+                                } label: {
+                                    HStack(spacing: 4) {
+                                        if checker.isChecking {
+                                            ProgressView()
+                                                .scaleEffect(0.5)
+                                                .frame(width: 10, height: 10)
+                                        }
+                                        Text(checker.isChecking ? "Checking..." : "Check for Updates")
+                                    }
+                                }
+                                .buttonStyle(.link)
+                                .font(.custom("Inter-Medium", size: 11))
+                                .disabled(checker.isChecking)
+                            }
 
                             Text("© 2026 Proofbound. All rights reserved.")
                                 .font(.custom("Inter-Regular", size: 11))

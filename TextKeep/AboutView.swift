@@ -14,7 +14,7 @@ struct AboutView: View {
                 .font(.custom("CrimsonText-SemiBold", size: 32))
 
             // Version
-            Text("Version 1.3.2")
+            Text("Version \(Bundle.main.appVersion)")
                 .font(.custom("Inter-Regular", size: 14))
                 .foregroundColor(.secondary)
 

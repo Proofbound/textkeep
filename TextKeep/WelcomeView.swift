@@ -87,7 +87,7 @@ struct WelcomeView: View {
             .font(.custom("Inter-Regular", size: 12))
             .foregroundColor(.secondary)
 
-            Text("Version 1.3.3")
+            Text("Version \(Bundle.main.appVersion)")
                 .font(.custom("Inter-Regular", size: 11))
                 .foregroundColor(.secondary)
 

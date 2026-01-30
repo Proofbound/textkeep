@@ -2,6 +2,11 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var viewModel = MessagesViewModel()
+
+    // Update checker for version checking (passed from parent)
+    var updateChecker: UpdateChecker?
+    var onUpdateCheckComplete: (() -> Void)?
+
     @State private var searchText = ""
     @State private var startDate = Calendar.current.date(from: DateComponents(year: 2025, month: 1, day: 1))!
     @State private var endDate = Date()
@@ -128,7 +133,10 @@ struct ContentView: View {
             Text("Messages exported to:\n\(exportedPath)")
         }
         .sheet(isPresented: $showHelp) {
-            HelpView()
+            HelpView(
+                updateChecker: updateChecker,
+                onUpdateCheckComplete: onUpdateCheckComplete
+            )
         }
         .onAppear {
             viewModel.checkAccessAndLoadContacts()
