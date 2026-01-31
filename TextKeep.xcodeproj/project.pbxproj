@@ -25,6 +25,7 @@
 		A11111110000000000000031 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000031 /* AboutView.swift */; };
 		A11111110000000000000040 /* UpdateChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000040 /* UpdateChecker.swift */; };
 		A11111110000000000000041 /* Bundle+Version.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000041 /* Bundle+Version.swift */; };
+		FE8B85232F2D7E4300193028 /* MockPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE8B85222F2D7E4300193028 /* MockPreview.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -38,8 +39,8 @@
 		A10000000000000000000010 /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
 		A10000000000000000000011 /* Contacts.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Contacts.framework; path = System/Library/Frameworks/Contacts.framework; sourceTree = SDKROOT; };
 		A10000000000000000000020 /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
-		A10000000000000000000021 /* CrimsonText-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "CrimsonText-Regular.ttf"; sourceTree = "<group>"; };
-		A10000000000000000000022 /* CrimsonText-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "CrimsonText-SemiBold.ttf"; sourceTree = "<group>"; };
+		A10000000000000000000021 /* CrimsonText-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = text; path = "CrimsonText-Regular.ttf"; sourceTree = "<group>"; };
+		A10000000000000000000022 /* CrimsonText-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = text; path = "CrimsonText-SemiBold.ttf"; sourceTree = "<group>"; };
 		A10000000000000000000023 /* Inter-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Regular.ttf"; sourceTree = "<group>"; };
 		A10000000000000000000024 /* Inter-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Medium.ttf"; sourceTree = "<group>"; };
 		A10000000000000000000025 /* Inter-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-SemiBold.ttf"; sourceTree = "<group>"; };
@@ -48,6 +49,7 @@
 		A10000000000000000000040 /* UpdateChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateChecker.swift; sourceTree = "<group>"; };
 		A10000000000000000000041 /* Bundle+Version.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Bundle+Version.swift"; sourceTree = "<group>"; };
 		A10000000000000000000100 /* TextKeep.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TextKeep.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		FE8B85222F2D7E4300193028 /* MockPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockPreview.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -66,6 +68,7 @@
 		A13333330000000000000001 = {
 			isa = PBXGroup;
 			children = (
+				FE8B85222F2D7E4300193028 /* MockPreview.swift */,
 				A13333330000000000000002 /* TextKeep */,
 				A13333330000000000000003 /* Products */,
 				A13333330000000000000004 /* Frameworks */,
@@ -207,6 +210,7 @@
 				A11111110000000000000002 /* ContentView.swift in Sources */,
 				A11111110000000000000020 /* WelcomeView.swift in Sources */,
 				A11111110000000000000030 /* HelpView.swift in Sources */,
+				FE8B85232F2D7E4300193028 /* MockPreview.swift in Sources */,
 				A11111110000000000000031 /* AboutView.swift in Sources */,
 				A11111110000000000000003 /* Models.swift in Sources */,
 				A11111110000000000000004 /* MessagesViewModel.swift in Sources */,
