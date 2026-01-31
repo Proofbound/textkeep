@@ -9,7 +9,7 @@ A macOS app for exporting your iMessage conversations to Markdown files.
 **Part of the [Proofbound](https://proofbound.com) family of tools.**
 
 <p align="center">
-  <img src="marketing/screenshot-export-example.png" alt="TextKeep Export Example" width="400"/>
+  <img src="marketing/mainscreen-phones.png" alt="TextKeep Export Example" width="400"/>
 </p>
 
 ## Features
