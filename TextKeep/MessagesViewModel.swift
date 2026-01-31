@@ -1454,6 +1454,9 @@ class MessagesViewModel: ObservableObject {
             markdown += "\n*No messages found in the specified date range.*\n"
         }
 
+        // Add footer
+        markdown += "\n\n***\n\nGenerated with [Proofbound™](https://proofbound.com)\n"
+
         return markdown
     }
 
@@ -1550,6 +1553,9 @@ class MessagesViewModel: ObservableObject {
         if messages.isEmpty {
             markdown += "\n*No messages found in the specified date range.*\n"
         }
+
+        // Add footer
+        markdown += "\n\n***\n\nGenerated with [Proofbound™](https://proofbound.com)\n"
 
         return markdown
     }

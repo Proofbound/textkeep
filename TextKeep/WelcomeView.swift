@@ -2,6 +2,7 @@ import SwiftUI
 
 struct WelcomeView: View {
     @Binding var hasSeenWelcome: Bool
+    @State private var window: NSWindow?
 
     private let privacyURL = URL(string: "https://app.proofbound.com/privacy")!
     private let termsURL = URL(string: "https://app.proofbound.com/terms")!
@@ -41,6 +42,10 @@ struct WelcomeView: View {
                     .padding(.horizontal, 32)
                     .padding(.top, 8)
             }
+            .onTapGesture(count: 2) {
+                resetWindowSize()
+            }
+            .help("Double-click to reset window size")
 
             Spacer()
 
@@ -95,8 +100,36 @@ struct WelcomeView: View {
 
             Spacer()
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(WindowAccessor(window: $window))
+        .frame(minWidth: 500, maxWidth: 1200, minHeight: 400, maxHeight: 900)
         .background(Color(NSColor.windowBackgroundColor))
+    }
+
+    func resetWindowSize() {
+        guard let window = window else { return }
+
+        // Default size
+        let defaultWidth: CGFloat = 600
+        let defaultHeight: CGFloat = 700
+
+        // Get current screen (or main screen if not on any screen)
+        let screen = window.screen ?? NSScreen.main ?? NSScreen.screens.first
+        guard let screenFrame = screen?.visibleFrame else { return }
+
+        // Calculate centered position on current screen
+        let newX = screenFrame.origin.x + (screenFrame.width - defaultWidth) / 2
+        let newY = screenFrame.origin.y + (screenFrame.height - defaultHeight) / 2
+
+        // Create new frame centered on screen
+        let newFrame = NSRect(
+            x: newX,
+            y: newY,
+            width: defaultWidth,
+            height: defaultHeight
+        )
+
+        // Animate to new size and position
+        window.setFrame(newFrame, display: true, animate: true)
     }
 }
 

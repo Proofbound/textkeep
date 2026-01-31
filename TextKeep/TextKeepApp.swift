@@ -37,7 +37,8 @@ struct TextKeepApp: App {
             }
         }
         .windowStyle(.hiddenTitleBar)
-        .defaultSize(width: 600, height: 500)
+        .defaultSize(width: 600, height: 700)
+        .windowResizability(.contentSize)
         .commands {
             // Replace default About menu
             CommandGroup(replacing: .appInfo) {
@@ -75,6 +76,14 @@ struct TextKeepApp: App {
                 }
                 .keyboardShortcut("?", modifiers: .command)
             }
+
+            // Add Window menu command
+            CommandGroup(after: .windowArrangement) {
+                Button("Reset Window Size") {
+                    resetMainWindowSize()
+                }
+                .keyboardShortcut("0", modifiers: .command)
+            }
         }
     }
 
@@ -94,6 +103,33 @@ struct TextKeepApp: App {
 
         // Keep window in memory
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func resetMainWindowSize() {
+        // Get the main window
+        guard let window = NSApplication.shared.windows.first(where: { $0.title.isEmpty || $0.title == "TextKeep" }) else { return }
+
+        // Default size
+        let defaultWidth: CGFloat = 600
+        let defaultHeight: CGFloat = 700
+
+        // Get current screen
+        let screen = window.screen ?? NSScreen.main ?? NSScreen.screens.first
+        guard let screenFrame = screen?.visibleFrame else { return }
+
+        // Calculate centered position
+        let newX = screenFrame.origin.x + (screenFrame.width - defaultWidth) / 2
+        let newY = screenFrame.origin.y + (screenFrame.height - defaultHeight) / 2
+
+        let newFrame = NSRect(
+            x: newX,
+            y: newY,
+            width: defaultWidth,
+            height: defaultHeight
+        )
+
+        // Animate to new size and position
+        window.setFrame(newFrame, display: true, animate: true)
     }
 
     private func handleUpdateCheckResult() {

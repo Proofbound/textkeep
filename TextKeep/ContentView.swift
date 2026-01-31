@@ -13,6 +13,7 @@ struct ContentView: View {
     @State private var showExportSuccess = false
     @State private var exportedPath = ""
     @State private var showHelp = false
+    @State private var window: NSWindow?
 
     private let privacyURL = URL(string: "https://app.proofbound.com/privacy")!
     private let termsURL = URL(string: "https://app.proofbound.com/terms")!
@@ -67,6 +68,10 @@ struct ContentView: View {
                     contactsInfoView
                 }
             }
+            .onTapGesture(count: 2) {
+                resetWindowSize()
+            }
+            .help("Double-click to reset window size")
             .padding()
             .frame(maxWidth: .infinity)
             .background(Color(NSColor.windowBackgroundColor))
@@ -123,7 +128,8 @@ struct ContentView: View {
                 Spacer()
             }
         }
-        .frame(minWidth: 500, minHeight: 400)
+        .background(WindowAccessor(window: $window))
+        .frame(minWidth: 500, maxWidth: 1200, minHeight: 400, maxHeight: 900)
         .alert("Export Complete", isPresented: $showExportSuccess) {
             Button("Show in Finder") {
                 NSWorkspace.shared.selectFile(exportedPath, inFileViewerRootedAtPath: (exportedPath as NSString).deletingLastPathComponent)
@@ -437,6 +443,33 @@ struct ContentView: View {
             }
         }
     }
+
+    func resetWindowSize() {
+        guard let window = window else { return }
+
+        // Default size from TextKeepApp.swift
+        let defaultWidth: CGFloat = 600
+        let defaultHeight: CGFloat = 700
+
+        // Get current screen (or main screen if not on any screen)
+        let screen = window.screen ?? NSScreen.main ?? NSScreen.screens.first
+        guard let screenFrame = screen?.visibleFrame else { return }
+
+        // Calculate centered position on current screen
+        let newX = screenFrame.origin.x + (screenFrame.width - defaultWidth) / 2
+        let newY = screenFrame.origin.y + (screenFrame.height - defaultHeight) / 2
+
+        // Create new frame centered on screen
+        let newFrame = NSRect(
+            x: newX,
+            y: newY,
+            width: defaultWidth,
+            height: defaultHeight
+        )
+
+        // Animate to new size and position
+        window.setFrame(newFrame, display: true, animate: true)
+    }
 }
 
 struct ConversationRow: View {
@@ -542,6 +575,35 @@ struct MessagePreviewRow: View {
         .padding(8)
         .background(message.isFromMe ? Color.blue.opacity(0.1) : Color.green.opacity(0.1))
         .cornerRadius(8)
+    }
+}
+
+// MARK: - Window Accessor Helper
+struct WindowAccessor: NSViewRepresentable {
+    @Binding var window: NSWindow?
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async {
+            self.window = view.window
+            self.configureWindowSizeLimits(view.window)
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        DispatchQueue.main.async {
+            self.window = nsView.window
+            self.configureWindowSizeLimits(nsView.window)
+        }
+    }
+
+    private func configureWindowSizeLimits(_ window: NSWindow?) {
+        guard let window = window else { return }
+
+        // Set explicit minimum and maximum sizes
+        window.minSize = NSSize(width: 500, height: 400)
+        window.maxSize = NSSize(width: 1200, height: 900)
     }
 }
 
